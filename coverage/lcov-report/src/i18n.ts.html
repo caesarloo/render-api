@@ -1,0 +1,190 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/i18n.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> i18n.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>3/3</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>3/3</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>1/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>3/3</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">type Lang = "zh" | "en";
+&nbsp;
+const strings: Record&lt;string, Record&lt;Lang, string&gt;&gt; = {
+  "plugin.name": { zh: "Render API", en: "Render API" },
+  "setting.serverPort": { zh: "服务器端口", en: "Server Port" },
+  "setting.serverPort.desc": { zh: "REST API 服务监听端口", en: "REST API server listen port" },
+  "setting.enableServerOnStart": { zh: "启动时开启服务", en: "Start Server on Launch" },
+  "setting.enableServerOnStart.desc": { zh: "Obsidian 启动时自动启动 API 服务", en: "Auto-start the API server when Obsidian launches" },
+  "setting.enableDataview": { zh: "启用 Dataview 渲染", en: "Enable Dataview Rendering" },
+  "setting.enableDataview.desc": { zh: "允许执行 dataview 查询和 dataviewjs 代码", en: "Allow executing dataview queries and dataviewjs code" },
+  "setting.enableMarkdownRender": { zh: "启用 Markdown 渲染", en: "Enable Markdown Rendering" },
+  "setting.enableMarkdownRender.desc": { zh: "允许渲染一般 Markdown 内容（包含 Tasks 等插件）", en: "Allow rendering general markdown content (including Tasks etc.)" },
+  "setting.apiKey": { zh: "API 密钥", en: "API Key" },
+  "setting.apiKey.desc": { zh: "留空则无需认证。设置后请求需带 X-API-Key 头", en: "Leave empty for no auth. When set, requests need X-API-Key header" },
+  "setting.corsOrigin": { zh: "CORS 来源", en: "CORS Origin" },
+  "setting.corsOrigin.desc": { zh: "留空则允许所有来源（*）", en: "Leave empty to allow all origins (*)" },
+  "setting.serverStatus": { zh: "服务器状态", en: "Server Status" },
+  "server.running": { zh: "运行中", en: "Running" },
+  "server.stopped": { zh: "已停止", en: "Stopped" },
+  "server.start": { zh: "启动服务", en: "Start Server" },
+  "server.stop": { zh: "停止服务", en: "Stop Server" },
+  "server.portUnavailable": { zh: "端口 {port} 被占用，请更换端口", en: "Port {port} is in use, please change port" },
+  "server.startError": { zh: "启动服务器失败：{error}", en: "Failed to start server: {error}" },
+  "cmd.startServer": { zh: "启动 Render API 服务", en: "Start Render API Server" },
+  "cmd.stopServer": { zh: "停止 Render API 服务", en: "Stop Render API Server" },
+  "cmd.openSettings": { zh: "打开 Render API 设置", en: "Open Render API Settings" },
+  "render.dataviewDisabled": { zh: "Dataview 插件未启用或未安装", en: "Dataview plugin not enabled or not installed" },
+  "render.queryError": { zh: "查询执行失败：{error}", en: "Query execution failed: {error}" },
+  "render.fileNotFound": { zh: "文件未找到：{path}", en: "File not found: {path}" },
+  "render.renderError": { zh: "渲染失败：{error}", en: "Render failed: {error}" },
+};
+&nbsp;
+export function t(key: string, lang: Lang = "zh"): string {
+  return strings[key]?.[lang] ?? key;
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-06-27T11:18:32.661Z
+            </div>
+        <script src="../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
+    </body>
+</html>
+    

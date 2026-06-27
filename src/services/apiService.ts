@@ -48,6 +48,10 @@ export class ApiServer {
       });
 
       this.server.listen(this.port, "127.0.0.1", () => {
+        const addr = this.server?.address();
+        if (addr && typeof addr === "object") {
+          this.port = addr.port;
+        }
         this.plugin.debugLog(`[Render API] Server started on port ${this.port}`);
         resolve();
       });

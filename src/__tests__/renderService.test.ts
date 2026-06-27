@@ -5,33 +5,48 @@
  * logic without requiring a real Obsidian environment.
  */
 
-// ---- Mock Obsidian module ----
-const mockRenderFn = jest.fn();
-const mockReadFn = jest.fn();
-
-jest.mock('obsidian', () => {
-  const actual = jest.requireActual('obsidian');
-  return {
-    ...actual,
-    MarkdownRenderer: {
-      render: (...args: unknown[]) => mockRenderFn(...args),
-    },
-  };
-});
-
 import { RenderService } from '../services/renderService';
+
+// ---- Full mock of obsidian module ----
+jest.mock('obsidian', () => ({
+  MarkdownRenderer: { render: jest.fn() },
+  Component: class MockComponent {},
+  TFile: class MockTFile {},
+  Plugin: class MockPlugin {},
+  PluginSettingTab: class MockPluginSettingTab {
+    constructor(public app: any, public plugin: any) {}
+  },
+  Setting: class MockSetting {
+    settingEl = document.createElement('div');
+    constructor(public containerEl: HTMLElement) {}
+    setName(n: string) { return this; }
+    setDesc(d: string) { return this; }
+    setHeading() { return this; }
+    addButton(cb: (b: any) => void) { return this; }
+    addToggle(cb: (t: any) => void) { return this; }
+    addText(cb: (t: any) => void) { return this; }
+  },
+  Notice: class MockNotice {
+    constructor(public message: string) {}
+  },
+  addIcon: jest.fn(),
+}), { virtual: true });
+
+import { MarkdownRenderer } from 'obsidian';
 import type { App, Component } from 'obsidian';
+
+// Mock MarkdownRenderer
+const mockRender = MarkdownRenderer.render as jest.Mock;
 
 function createMockApp(dvApi: unknown = null): App {
   return {
     vault: {
       getAbstractFileByPath: jest.fn(),
-      read: mockReadFn,
-      cachedRead: jest.fn(),
+      read: jest.fn(),
     } as unknown as App['vault'],
     workspace: {
       getActiveViewOfType: jest.fn(),
-    },
+    } as unknown as App['workspace'],
     plugins: {
       plugins: dvApi ? { dataview: { api: dvApi } } : {},
     },
@@ -136,7 +151,6 @@ describe('RenderService', () => {
       const mockDvApi = {
         query: jest.fn(),
         execute: jest.fn().mockImplementation(async (_code: string, _dv: unknown) => {
-          // Simulate dv.output() calls
           const dv = _dv as Record<string, unknown>;
           const output = dv.output as (...args: unknown[]) => void;
           output('Hello, world!');
@@ -171,11 +185,13 @@ describe('RenderService', () => {
     });
 
     it('renders file content when file exists', async () => {
-      const mockFile = { path: 'test.md', vault: { read: jest.fn() } };
+      const { TFile } = require('obsidian');
+      const mockFile = new TFile();
+      mockFile.path = 'test.md';
       const app = createMockApp();
       (app.vault.getAbstractFileByPath as jest.Mock).mockReturnValue(mockFile);
-      mockReadFn.mockResolvedValue('# Hello World\n\nThis is a **test**.');
-      mockRenderFn.mockImplementation(
+      (app.vault.read as jest.Mock).mockResolvedValue('# Hello World\n\nThis is a **test**.');
+      mockRender.mockImplementation(
         (_app: App, _content: string, el: HTMLElement, _path: string, _component: Component) => {
           el.innerHTML = '<h1>Hello World</h1><p>This is a <strong>test</strong>.</p>';
         },
@@ -205,7 +221,7 @@ describe('RenderService', () => {
 
     it('renders raw markdown content', async () => {
       const app = createMockApp();
-      mockRenderFn.mockImplementation(
+      mockRender.mockImplementation(
         (_app: App, _content: string, el: HTMLElement, _path: string, _component: Component) => {
           el.innerHTML = '<p>Hello <strong>world</strong></p>';
         },

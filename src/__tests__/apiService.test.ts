@@ -1,3 +1,4 @@
+import * as http from 'node:http';
 import { ApiServer } from '../services/apiService';
 import type { RenderApiPlugin } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
@@ -17,12 +18,40 @@ function createMockPlugin(overrides: Partial<RenderApiPlugin> = {}): RenderApiPl
       vault: {} as any,
       workspace: {} as any,
     } as any,
-    manifest: { version: '0.1.4' } as any,
+    manifest: { version: '0.1.7' } as any,
     _component: {} as any,
     saveSettings: jest.fn(),
     debugLog: jest.fn(),
     ...overrides,
   } as unknown as RenderApiPlugin;
+}
+
+function httpGet(url: string): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: string }> {
+  return new Promise((resolve, reject) => {
+    http.get(url, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode ?? 0,
+          headers: res.headers,
+          body: Buffer.concat(chunks).toString('utf-8'),
+        });
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+function httpOptions(url: string): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, { method: 'OPTIONS' }, (res) => {
+      res.resume();
+      resolve({ statusCode: res.statusCode ?? 0, headers: res.headers });
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 describe('ApiServer', () => {
@@ -44,30 +73,27 @@ describe('ApiServer', () => {
   describe('lifecycle', () => {
     it('starts and stops the server', async () => {
       expect(server.isRunning).toBe(false);
-      await server.start(0); // port 0 = random available port
+      await server.start(0);
       expect(server.isRunning).toBe(true);
       expect(server.address).toMatch(/^http:\/\/localhost:\d+$/);
-
       await server.stop();
       expect(server.isRunning).toBe(false);
     });
 
     it('starting twice is a no-op', async () => {
       await server.start(0);
-      await server.start(0); // should not throw
+      await server.start(0);
       expect(server.isRunning).toBe(true);
     });
 
     it('stopping when not running is a no-op', async () => {
-      await server.stop(); // should not throw
+      await server.stop();
       expect(server.isRunning).toBe(false);
     });
   });
 
   describe('authentication', () => {
-    it('allows requests without auth when no API key is set', async () => {
-      // The auth is checked in handleRequest which needs an actual request
-      // This tests the plugin config
+    it('allows requests without auth when no API key is set', () => {
       expect(plugin.settings.apiKey).toBe('');
     });
 
@@ -80,38 +106,30 @@ describe('ApiServer', () => {
   describe('health endpoint', () => {
     it('returns server info on health check', async () => {
       await server.start(0);
-      
-      // Make a request to /health
-      const response = await fetch(`${server.address}/health`);
-      expect(response.status).toBe(200);
-      
-      const body = await response.json() as Record<string, unknown>;
+      const res = await httpGet(`${server.address}/health`);
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as Record<string, unknown>;
       expect(body.status).toBe('running');
       expect(body.dataviewAvailable).toBe(false);
-      expect(body.version).toBe('0.1.4');
+      expect(body.version).toBe('0.1.7');
     });
   });
 
   describe('CORS headers', () => {
     it('returns CORS headers on OPTIONS preflight', async () => {
       await server.start(0);
-      
-      const response = await fetch(`${server.address}/health`, {
-        method: 'OPTIONS',
-      });
-      expect(response.status).toBe(204);
-      expect(response.headers.get('access-control-allow-origin')).toBe('*');
+      const res = await httpOptions(`${server.address}/health`);
+      expect(res.statusCode).toBe(204);
+      expect(res.headers['access-control-allow-origin']).toBe('*');
     });
   });
 
   describe('404 handling', () => {
     it('returns 404 for unknown endpoints', async () => {
       await server.start(0);
-      
-      const response = await fetch(`${server.address}/unknown-path`);
-      expect(response.status).toBe(404);
-      
-      const body = await response.json() as Record<string, unknown>;
+      const res = await httpGet(`${server.address}/unknown-path`);
+      expect(res.statusCode).toBe(404);
+      const body = JSON.parse(res.body) as Record<string, unknown>;
       expect(body.error).toBe('Not found');
     });
   });

@@ -157,7 +157,7 @@ export class RenderService {
   ): Promise<RenderResult> {
     const doc = activeDocument;
     const el = doc.createElement("div");
-    el.addClass("render-api-render-container");
+    el.classList.add("render-api-render-container");
     doc.body.appendChild(el);
 
     try {
