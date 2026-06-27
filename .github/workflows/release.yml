@@ -25,12 +25,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: dist/main.js, dist/manifest.json, dist/styles.css
-
-      - name: Create Release
+      - name: Create Release with Attestation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -47,7 +42,7 @@ jobs:
           fi
 
           gh release create "$VERSION" \
-            dist/main.js dist/manifest.json dist/styles.css \
+            dist/main.js dist/manifest.json dist/styles.css dist/versions.json \
             --title "Render API v${VERSION}" \
             --notes-file "$NOTES_FILE" \
             --verify-tag
