@@ -155,7 +155,7 @@ export class RenderService {
     sourcePath: string,
     format?: "html" | "text" | "json",
   ): Promise<RenderResult> {
-    const doc = activeDocument ?? document;
+    const doc = activeDocument;
     const el = doc.createElement("div");
     el.addClass("render-api-render-container");
     doc.body.appendChild(el);

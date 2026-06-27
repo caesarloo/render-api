@@ -161,7 +161,7 @@ export class ApiServer {
     const body = await this.readBody(req);
     let parsed: { query?: string; code?: string; format?: string };
     try {
-      parsed = JSON.parse(body);
+      parsed = JSON.parse(body) as { query?: string; code?: string; format?: string };
     } catch {
       this.sendJson(res, 400, { success: false, error: "Invalid JSON body" });
       return;

@@ -10,6 +10,8 @@ export class RenderApiSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
+  // display() is deprecated since Obsidian 1.13.0 but required for 1.7.2+
+  // eslint-disable-next-line obsidianmd/no-deprecated-method
   display(): void {
     const { containerEl } = this;
     const lang = this.plugin.settings.language;
