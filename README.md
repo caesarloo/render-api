@@ -183,9 +183,9 @@ npm run typecheck
 npm run dev
 ```
 
-### MCP Server (coming soon)
+### MCP Server (planned)
 
-A stdio MCP server mode is planned, enabling direct integration with AI tools that support the Model Context Protocol, eliminating the need for manual `curl` calls.
+A stdio MCP server mode is under consideration, which would enable direct integration with AI tools that support the Model Context Protocol, eliminating the need for manual `curl` calls.
 
 ---
 
@@ -312,7 +312,7 @@ npm run typecheck  # 类型检查
 npm run dev      # 开发模式（watch）
 ```
 
-### MCP 服务（即将推出）
+### MCP 服务（规划中）
 
 计划支持 stdio MCP Server 模式，让 AI 工具通过 Model Context Protocol 直接集成，无需手动调用 curl。
 
