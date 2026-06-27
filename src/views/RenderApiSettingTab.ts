@@ -49,7 +49,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
             } else {
               try {
                 await this.plugin.startApiServer();
-              } catch (_err) {
+              } catch {
                 // Error notice already shown by main.ts
               }
             }

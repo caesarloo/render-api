@@ -38,6 +38,8 @@ export interface RenderApiPlugin extends Plugin {
   apiServer: ApiServer | null;
   saveSettings(): Promise<void>;
   debugLog(message: string, details?: unknown): void;
+  /** Used as a Component for MarkdownRenderer */
+  _component: Plugin;
 }
 
 export const VIEW_TYPE_RENDER_API = "render-api-panel";

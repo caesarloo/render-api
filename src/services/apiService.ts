@@ -1,5 +1,5 @@
 import * as http from "node:http";
-import type { RenderRequest, RenderApiPlugin } from "src/types";
+import type { RenderRequest, RenderApiPlugin, RenderResult } from "src/types";
 
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
 interface JsonObject { [key: string]: JsonValue | undefined }
@@ -148,10 +148,10 @@ export class ApiServer {
     const { RenderService } = await import("./renderService");
     const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
+      this.plugin._component,
     );
     const result = await renderService.render(renderReq);
-    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
+    this.sendJson(res, result.success ? 200 : 400, toJsonObject(result));
   }
 
   private async handleDataview(
@@ -170,14 +170,14 @@ export class ApiServer {
     const { RenderService } = await import("./renderService");
     const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
+      this.plugin._component,
     );
     const result = await renderService.render({
       query: parsed.query,
       code: parsed.code,
       format: parsed.format as "html" | "text" | "json" | undefined,
     });
-    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
+    this.sendJson(res, result.success ? 200 : 400, toJsonObject(result));
   }
 
   private async handleFileRender(
@@ -213,10 +213,10 @@ export class ApiServer {
     const { RenderService } = await import("./renderService");
     const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
+      this.plugin._component,
     );
     const result = await renderService.render({ filePath, format });
-    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
+    this.sendJson(res, result.success ? 200 : 400, toJsonObject(result));
   }
 
   // ---- Helpers ----
@@ -253,4 +253,16 @@ export class ApiServer {
       req.on("error", reject);
     });
   }
+}
+
+/** Convert a RenderResult to a JSON-safe plain object. */
+function toJsonObject(result: RenderResult): Record<string, unknown> {
+  return {
+    success: result.success,
+    data: result.data ?? null,
+    html: result.html ?? null,
+    text: result.text ?? null,
+    error: result.error ?? null,
+    mimeType: result.mimeType ?? null,
+  };
 }

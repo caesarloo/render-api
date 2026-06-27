@@ -55,8 +55,8 @@ export default class RenderApiPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const loaded = await this.loadData();
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded as Partial<RenderApiSettings>);
+    const loaded: unknown = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
   }
 
   async saveSettings(): Promise<void> {

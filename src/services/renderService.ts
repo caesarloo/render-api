@@ -123,7 +123,7 @@ export class RenderService {
               output.push(args.map(String).join(" "));
             };
           }
-          return Reflect.get(target, prop, receiver);
+          return Reflect.get(target, prop, receiver) as unknown;
         },
       });
 
@@ -155,9 +155,10 @@ export class RenderService {
     sourcePath: string,
     format?: "html" | "text" | "json",
   ): Promise<RenderResult> {
-    const el = document.createElement("div");
+    const doc = activeDocument ?? document;
+    const el = doc.createElement("div");
     el.addClass("render-api-render-container");
-    document.body.appendChild(el);
+    doc.body.appendChild(el);
 
     try {
       await MarkdownRenderer.render(this.app, content, el, sourcePath, this.component);
