@@ -43,7 +43,7 @@ jobs:
           fi
           
           gh release create "$VERSION" \
-            dist/main.js dist/manifest.json dist/styles.css \
+            dist/main.js dist/manifest.json dist/styles.css dist/versions.json \
             --title "Render API v${VERSION}" \
             --notes-file "$NOTES_FILE"
           
