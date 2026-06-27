@@ -10,7 +10,7 @@
 
 > ⚠️ **Permissions**: This plugin starts a local HTTP server (Node.js `http` module, bound to `127.0.0.1`) and may invoke the dataview plugin's JavaScript API when enabled. It does not access external networks beyond what you configure. These permissions are required to expose rendering results via an API and cannot be replaced by the Obsidian vault API.
 
-**Current stable version**: `0.1.0`
+**Current stable version**: `0.1.10`
 
 **Latest release**: https://github.com/caesarloo/render-api/releases
 
@@ -61,7 +61,7 @@ Check server status and capabilities.
   "status": "running",
   "port": 27123,
   "dataviewAvailable": true,
-  "version": "0.1.0"
+  "version": "0.1.10"
 }
 ```
 
@@ -197,7 +197,7 @@ A stdio MCP server mode is under consideration, which would enable direct integr
 
 > ⚠️ **权限说明**：本插件启动一个本地 HTTP 服务（Node.js `http` 模块，绑定到 `127.0.0.1`），并可能在你开启相关功能时调用 dataview 插件的 JavaScript API。插件不会主动访问外部网络。这些权限是 API 服务所必需的，无法通过 Obsidian vault API 替代。
 
-当前稳定版本：`0.1.0`
+当前稳定版本：`0.1.10`
 
 最新发布页：https://github.com/caesarloo/render-api/releases
 
