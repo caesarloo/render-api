@@ -185,6 +185,7 @@ describe('RenderService', () => {
     });
 
     it('renders file content when file exists', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { TFile } = require('obsidian');
       const mockFile = new TFile();
       mockFile.path = 'test.md';
