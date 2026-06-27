@@ -26,3 +26,31 @@
 .render-api-start-btn {
   margin-left: 12px;
 }
+
+/* MCP code block with copy button */
+.render-api-code-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.render-api-code-wrapper pre {
+  padding-top: 32px;
+}
+
+.render-api-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-muted);
+}
+
+.render-api-copy-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
