@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -23,18 +24,23 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Generate artifact attestations
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/main.js, dist/manifest.json, dist/styles.css
+
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           NOTES_FILE="RELEASE_v${VERSION}.md"
-          
+
           if [ ! -f "$NOTES_FILE" ]; then
             echo "Missing: $NOTES_FILE"
             exit 1
           fi
-          
+
           gh release create "$VERSION" \
             dist/main.js dist/manifest.json dist/styles.css \
             --title "Render API v${VERSION}" \
