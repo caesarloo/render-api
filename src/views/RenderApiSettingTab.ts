@@ -104,19 +104,16 @@ export class RenderApiSettingTab extends PluginSettingTab {
           // Section heading
           const mcpHeading = new Setting(container)
             .setHeading();
-          // eslint-disable-next-line obsidianmd/ui/sentence-case
-          mcpHeading.setName("MCP server");
+          mcpHeading.setName("Mcp server");
 
           const desc = container.createEl("p", { cls: "setting-item-description" });
-          // eslint-disable-next-line obsidianmd/ui/sentence-case
-          desc.setText("MCP (Model Context Protocol) allows AI tools like Hermes Agent and Claude Desktop to interact with your vault programmatically.");
+          desc.setText("Mcp (model context protocol) allows AI tools like hermes agent and Claude desktop to interact with your vault programmatically.");
 
           const configDir = this.app.vault.configDir;
           const mcpPath = `<${configDir}>/plugins/render-api/mcp-server.js`;
 
           const hermesSetting = new Setting(container);
-          // eslint-disable-next-line obsidianmd/ui/sentence-case
-          hermesSetting.setName("Configuration for Hermes Agent");
+          hermesSetting.setName("Configuration for hermes agent");
           hermesSetting.setDesc("Add to ~/.hermes/config.yaml");
 
           const hermesBlock = container.createEl("pre", {
@@ -127,8 +124,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
           });
 
           const claudeSetting = new Setting(container);
-          // eslint-disable-next-line obsidianmd/ui/sentence-case
-          claudeSetting.setName("Configuration for Claude Desktop");
+          claudeSetting.setName("Configuration for Claude desktop");
           claudeSetting.setDesc("Add to claude_desktop_config.json");
 
           const claudeBlock = container.createEl("pre", {

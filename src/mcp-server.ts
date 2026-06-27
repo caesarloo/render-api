@@ -87,8 +87,7 @@ interface JsonRpcResponse {
   error?: { code: number; message: string };
 }
 
-// Track session initialization state (reserved for future use)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- reserved for session state tracking in future MCP protocol handshake validation
 let sessionInitialized = false;
 
 function sendResponse(id: number | string, result: unknown): void {
