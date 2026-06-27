@@ -29,7 +29,7 @@ jobs:
         run: npm run lint
 
       - name: Unit Tests
-        run: npm run test
+        run: npm install --save-dev jest@30 @types/jest@30 ts-jest@29 && npm run test
 
       - name: Build
         run: npm run build
