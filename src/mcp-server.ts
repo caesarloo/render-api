@@ -7,6 +7,9 @@
  * Usage:
  *   node dist/mcp-server.js [--port 27123] [--host 127.0.0.1]
  *
+ * The server auto-detects the Render API port if the specified
+ * port is not available. It scans ports 27123-27133.
+ *
  * MCP client config (hermes, claude desktop, etc.):
  *   {
  *     "command": "node",
@@ -20,16 +23,36 @@ import * as readline from "node:readline";
 
 // ---- Config ----
 const args = process.argv.slice(2);
-const PORT = parseInt(args[args.indexOf("--port") + 1] ?? "27123", 10);
+const CLI_PORT = parseInt(args[args.indexOf("--port") + 1] ?? "27123", 10);
 const HOST = args[args.indexOf("--host") + 1] ?? "127.0.0.1";
-const BASE_URL = `http://${HOST}:${PORT}`;
 
-// ---- HTTP helper ----
+// Discovered base URL — updated after port scan
+let activeBaseUrl = `http://${HOST}:${CLI_PORT}`;
+let detectedPort: number | null = null;
+
+// ---- HTTP helpers ----
+
+function apiGet(path: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    http.get(`${activeBaseUrl}${path}`, { timeout: 5_000 }, (res) => {
+      let chunks = "";
+      res.on("data", (chunk: string) => (chunks += chunk));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(chunks));
+        } catch {
+          resolve(chunks);
+        }
+      });
+    }).on("error", (err) => reject(err));
+  });
+}
+
 function apiPost(path: string, body: unknown): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
     const req = http.request(
-      `${BASE_URL}${path}`,
+      `${activeBaseUrl}${path}`,
       {
         method: "POST",
         headers: {
@@ -56,20 +79,46 @@ function apiPost(path: string, body: unknown): Promise<unknown> {
   });
 }
 
-function apiGet(path: string): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    http.get(`${BASE_URL}${path}`, { timeout: 5_000 }, (res) => {
+/** Check if the Render API is reachable on a given port. */
+function checkPort(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.get(`http://${host}:${port}/health`, { timeout: 2_000 }, (res) => {
       let chunks = "";
       res.on("data", (chunk: string) => (chunks += chunk));
       res.on("end", () => {
         try {
-          resolve(JSON.parse(chunks));
+          const data = JSON.parse(chunks);
+          resolve(data?.status === "running");
         } catch {
-          resolve(chunks);
+          resolve(false);
         }
       });
-    }).on("error", (err) => reject(err));
+    });
+    req.on("error", () => resolve(false));
+    req.setTimeout(2_000, () => { req.destroy(); resolve(false); });
   });
+}
+
+/** Scan port range to find the Render API server. */
+async function detectServer(host: string, preferred: number): Promise<number | null> {
+  const start = Math.max(preferred - 5, 1024);
+  const end = preferred + 5;
+
+  // Try preferred port first
+  if (await checkPort(host, preferred)) {
+    return preferred;
+  }
+
+  // Scan range
+  process.stderr.write(`[render-api-mcp] Port ${preferred} not available, scanning ${start}-${end}...\n`);
+  for (let port = start; port <= end; port++) {
+    if (port === preferred) continue;
+    if (await checkPort(host, port)) {
+      process.stderr.write(`[render-api-mcp] Found Render API on port ${port}\n`);
+      return port;
+    }
+  }
+  return null;
 }
 
 // ---- MCP Protocol ----
@@ -184,7 +233,7 @@ const tools: ToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {
-        code: { type: "string", description: "DataviewJS code (e.g. 'dv.pages().filter(p => p.tags?.includes(\"project\")).map(p => p.file.name)')" },
+        code: { type: "string", description: "DataviewJS code" },
         format: { type: "string", enum: ["html", "text", "json"], description: "Output format (default: text)" },
       },
       required: ["code"],
@@ -203,7 +252,6 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
   const { id, method, params } = req;
 
   switch (method) {
-    // Session management
     case "initialize": {
       sessionInitialized = true;
       sendResponse(id, {
@@ -220,11 +268,9 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
     }
 
     case "notifications/initialized": {
-      // No response needed for notifications
       break;
     }
 
-    // Tools
     case "tools/list": {
       sendResponse(id, {
         tools: tools.map((t) => ({
@@ -269,16 +315,20 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
 }
 
 // ---- Main ----
-function main(): void {
-  // Try to connect to the server on startup
-  apiGet("/health")
-    .then((health) => {
-      const info = health as Record<string, unknown>;
-      process.stderr.write(`[render-api-mcp] Connected to Render API v${info.version ?? "unknown"} at ${HOST}:${PORT}\n`);
-    })
-    .catch(() => {
-      process.stderr.write(`[render-api-mcp] Warning: Could not connect to Render API at ${HOST}:${PORT}. Make sure the plugin server is running.\n`);
-    });
+async function main(): Promise<void> {
+  // Dynamic port detection
+  detectedPort = await detectServer(HOST, CLI_PORT);
+  if (detectedPort) {
+    activeBaseUrl = `http://${HOST}:${detectedPort}`;
+    try {
+      const health = await apiGet("/health") as Record<string, unknown>;
+      process.stderr.write(`[render-api-mcp] Connected to Render API v${health.version ?? "unknown"} at ${HOST}:${detectedPort}\n`);
+    } catch {
+      process.stderr.write(`[render-api-mcp] Connected to Render API at ${HOST}:${detectedPort}\n`);
+    }
+  } else {
+    process.stderr.write(`[render-api-mcp] Warning: Render API not found on ports ${Math.max(CLI_PORT - 5, 1024)}-${CLI_PORT + 5}. Start the plugin server first.\n`);
+  }
 
   process.stderr.write(`[render-api-mcp] MCP server ready (stdio)\n`);
 
@@ -287,12 +337,10 @@ function main(): void {
   rl.on("line", (line: string) => {
     const trimmed = line.trim();
     if (!trimmed) return;
-
     try {
       const req = JSON.parse(trimmed) as JsonRpcRequest;
       void handleRequest(req);
     } catch {
-      // Ignore parse errors on malformed JSON
       process.stderr.write(`[render-api-mcp] Failed to parse request: ${trimmed}\n`);
     }
   });
@@ -302,4 +350,4 @@ function main(): void {
   });
 }
 
-main();
+void main();
