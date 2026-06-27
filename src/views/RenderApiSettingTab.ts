@@ -67,22 +67,21 @@ export class RenderApiSettingTab extends PluginSettingTab {
               : `○ Stopped`,
           });
           const btn = container.createEl("button", {
-            cls: "mod-cta",
+            cls: "mod-cta render-api-start-btn",
             text: isRunning ? "Stop Server" : "Start Server",
           });
-          btn.style.marginLeft = "12px";
-          btn.addEventListener("click", async () => {
-            if (isRunning) {
-              await this.plugin.stopApiServer();
-            } else {
-              await this.plugin.startApiServer();
-            }
-            const app = this.app as unknown as {
-              setting: { open: () => void; openTabById: (id: string) => void };
-            };
-            const s = app.setting;
-            s.open();
-            s.openTabById("render-api");
+          btn.addEventListener("click", () => {
+            const action = isRunning
+              ? this.plugin.stopApiServer()
+              : this.plugin.startApiServer();
+            action.then(() => {
+              const app = this.app as unknown as {
+                setting: { open: () => void; openTabById: (id: string) => void };
+              };
+              const s = app.setting;
+              s.open();
+              s.openTabById("render-api");
+            });
           });
         },
       } as SettingDefinitionItem,

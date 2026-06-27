@@ -22,3 +22,7 @@
   position: absolute;
   left: -9999px;
 }
+
+.render-api-start-btn {
+  margin-left: 12px;
+}
