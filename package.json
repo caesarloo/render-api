@@ -1,6 +1,6 @@
 {
   "name": "obsidian-render-api",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "description": "Expose dataview/Tasks rendering results via REST API and MCP Server",
   "main": "dist/main.js",

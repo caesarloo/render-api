@@ -81,6 +81,8 @@ export class RenderApiSettingTab extends PluginSettingTab {
               const s = app.setting;
               s.open();
               s.openTabById("render-api");
+            }).catch(() => {
+              // Errors already reported by startApiServer/stopApiServer
             });
           });
         },
