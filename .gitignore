@@ -1,4 +1,5 @@
 node_modules/
 dist/
+coverage/
 *.hot-update.*
 .DS_Store
