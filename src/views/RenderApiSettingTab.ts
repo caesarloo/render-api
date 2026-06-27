@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import { t } from "src/i18n";
-import type RenderApiPlugin from "src/main";
+import { t } from "../i18n";
+import type RenderApiPlugin from "../main";
 
 export class RenderApiSettingTab extends PluginSettingTab {
   constructor(
@@ -15,11 +15,13 @@ export class RenderApiSettingTab extends PluginSettingTab {
     const lang = this.plugin.settings.language;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: t("plugin.name", lang) });
+    new Setting(containerEl)
+      .setName(t("plugin.name", lang))
+      .setHeading();
 
     // ---- Server status ----
-    const statusDesc = containerEl.createDiv();
-    const statusBadge = statusDesc.createSpan({
+    const statusContainer = containerEl.createDiv();
+    statusContainer.createSpan({
       cls: `render-api-status-badge ${
         this.plugin.apiServer?.isRunning ? "running" : "stopped"
       }`,
@@ -29,7 +31,11 @@ export class RenderApiSettingTab extends PluginSettingTab {
     });
 
     new Setting(containerEl)
-      .setName(t("server.start", lang))
+      .setName(
+        this.plugin.apiServer?.isRunning
+          ? t("server.stop", lang)
+          : t("server.start", lang),
+      )
       .addButton((btn) =>
         btn
           .setButtonText(
@@ -39,11 +45,11 @@ export class RenderApiSettingTab extends PluginSettingTab {
           )
           .onClick(async () => {
             if (this.plugin.apiServer?.isRunning) {
-              await this.plugin.apiServer.stop();
+              await this.plugin.stopApiServer();
             } else {
               try {
                 await this.plugin.startApiServer();
-              } catch (err) {
+              } catch (_err) {
                 // Error notice already shown by main.ts
               }
             }
@@ -135,4 +141,10 @@ export class RenderApiSettingTab extends PluginSettingTab {
           }),
       );
   }
+
+  /**
+   * getSettingDefinitions is available in Obsidian 1.13+.
+   * We keep display() for backward compatibility with 1.7.2.
+   * eslint-disable-next-line obsidianmd/no-deprecated-method
+   */
 }

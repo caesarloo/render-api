@@ -3,11 +3,18 @@ import {
   Component,
   MarkdownRenderer,
   TFile,
-  parseYaml,
-  stringifyYaml,
 } from "obsidian";
 
 import type { RenderResult, RenderRequest } from "src/types";
+
+/**
+ * Minimal interface for the dataview plugin's exposed API.
+ */
+interface DataviewAPI {
+  query(query: string): Promise<{ successful: boolean; value: unknown; type: string }>;
+  execute(code: string, ...args: unknown[]): Promise<unknown>;
+  [key: string]: unknown;
+}
 
 /**
  * Service responsible for rendering markdown / dataview content.
@@ -30,17 +37,12 @@ export class RenderService {
    */
   async render(req: RenderRequest): Promise<RenderResult> {
     try {
-      // 1) Dataview DQL query
       if (req.query) {
         return await this.renderDataviewQuery(req.query, req.format);
       }
-
-      // 2) DataviewJS code
       if (req.code) {
         return await this.renderDataviewJS(req.code, req.format);
       }
-
-      // 3) File content
       if (req.filePath) {
         const file = this.app.vault.getAbstractFileByPath(req.filePath);
         if (!file || !(file instanceof TFile)) {
@@ -49,18 +51,13 @@ export class RenderService {
         const content = await this.app.vault.read(file);
         return await this.renderMarkdown(content, req.filePath, req.format);
       }
-
-      // 4) Raw markdown string
       if (req.content) {
         return await this.renderMarkdown(req.content, "", req.format);
       }
-
       return { success: false, error: "No content, query, filePath, or code provided" };
     } catch (err) {
-      return {
-        success: false,
-        error: `Render failed: ${(err as Error).message}`,
-      };
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `Render failed: ${msg}` };
     }
   }
 
@@ -76,23 +73,15 @@ export class RenderService {
     }
 
     try {
-      // Try executing as a full DQL query via the dataview query API
-      const result: { successful: boolean; value: any; type: string } =
-        await dvApi.query(query);
-
+      const result = await dvApi.query(query);
       if (!result.successful) {
-        return { success: false, error: `Query execution failed: ${result.value}` };
+        return { success: false, error: `Query execution failed: ${String(result.value)}` };
       }
 
       if (format === "json") {
-        return {
-          success: true,
-          data: result.value,
-          mimeType: "application/json",
-        };
+        return { success: true, data: result.value as Record<string, unknown>, mimeType: "application/json" };
       }
 
-      // Convert result to readable text/HTML
       const text = this.dataviewResultToText(result.value);
       const html = `<pre>${this.escapeHtml(text)}</pre>`;
 
@@ -100,11 +89,12 @@ export class RenderService {
         success: true,
         text,
         html,
-        data: result.value,
+        data: result.value as Record<string, unknown>,
         mimeType: format === "text" ? "text/plain" : "text/html",
       };
     } catch (err) {
-      return { success: false, error: `Query execution failed: ${(err as Error).message}` };
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `Query execution failed: ${msg}` };
     }
   }
 
@@ -120,7 +110,6 @@ export class RenderService {
     }
 
     try {
-      // Execute dataviewJS: eval the code and collect what dv.output() produces
       const output: string[] = [];
       const dvProxy = new Proxy(dvApi, {
         get(target, prop, receiver) {
@@ -138,11 +127,11 @@ export class RenderService {
         },
       });
 
-      const result = await dvApi.execute(code, dvProxy);
-      const text = output.join("\n") + (result !== undefined ? `\n${String(result)}` : "");
+      await dvApi.execute(code, dvProxy);
+      const text = output.join("\n");
 
       if (format === "json") {
-        return { success: true, data: { output, result }, mimeType: "application/json" };
+        return { success: true, data: { output }, mimeType: "application/json" };
       }
 
       const html = `<pre>${this.escapeHtml(text)}</pre>`;
@@ -150,11 +139,12 @@ export class RenderService {
         success: true,
         text,
         html,
-        data: { output, result },
+        data: { output },
         mimeType: format === "text" ? "text/plain" : "text/html",
       };
     } catch (err) {
-      return { success: false, error: `JS execution failed: ${(err as Error).message}` };
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `JS execution failed: ${msg}` };
     }
   }
 
@@ -166,15 +156,11 @@ export class RenderService {
     format?: "html" | "text" | "json",
   ): Promise<RenderResult> {
     const el = document.createElement("div");
-    el.style.position = "absolute";
-    el.style.left = "-9999px";
+    el.addClass("render-api-render-container");
     document.body.appendChild(el);
 
     try {
       await MarkdownRenderer.render(this.app, content, el, sourcePath, this.component);
-
-      // Wait for post-processors (dataview, tasks, etc.) to finish
-      // Post-processors typically resolve in the next microtask/macrotask
       await this.waitForPostProcessors();
 
       const html = el.innerHTML;
@@ -188,7 +174,8 @@ export class RenderService {
       }
       return { success: true, html, text, mimeType: "text/html" };
     } catch (err) {
-      return { success: false, error: `Markdown render failed: ${(err as Error).message}` };
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `Markdown render failed: ${msg}` };
     } finally {
       el.remove();
     }
@@ -196,30 +183,26 @@ export class RenderService {
 
   // ---- Helpers ----
 
-  private getDataviewAPI(): any {
-    const dvPlugin = (this.app as any).plugins?.plugins?.["dataview"];
-    return dvPlugin?.api ?? null;
+  private getDataviewAPI(): DataviewAPI | null {
+    const plugins = (this.app as unknown as Record<string, unknown>).plugins as Record<string, unknown> | undefined;
+    const pluginRegistry = plugins?.plugins as Record<string, unknown> | undefined;
+    const dvPlugin = pluginRegistry?.["dataview"] as Record<string, unknown> | undefined;
+    return (dvPlugin?.api as DataviewAPI) ?? null;
   }
 
-  /**
-   * Wait for Obsidian's markdown post-processors to finish rendering.
-   * Strategy: yield control multiple times to let the event loop drain
-   * post-processor queues (dataview, tasks, etc.).
-   */
   private async waitForPostProcessors(): Promise<void> {
-    // Give post-processors a chance to run
-    await new Promise((r) => setTimeout(r, 50));
-    await new Promise((r) => requestAnimationFrame(r));
-    // Extra settle for plugins that batch updates
-    await new Promise((r) => setTimeout(r, 50));
-    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => window.setTimeout(r, 50));
+    await new Promise((r) => window.requestAnimationFrame(r));
+    await new Promise((r) => window.setTimeout(r, 50));
+    await new Promise((r) => window.requestAnimationFrame(r));
   }
 
-  private dataviewResultToText(result: any): string {
+  private dataviewResultToText(result: unknown): string {
     if (!result) return "";
-    if (Array.isArray(result.values)) {
-      const headers = result.headers ?? [];
-      const rows = result.values as any[][];
+    const r = result as Record<string, unknown>;
+    if (Array.isArray(r.values)) {
+      const headers = (r.headers as string[]) ?? [];
+      const rows = r.values as unknown[][];
       const lines = [headers.join("\t")];
       for (const row of rows) {
         lines.push(row.map((v) => String(v ?? "")).join("\t"));

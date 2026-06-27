@@ -17,3 +17,8 @@
   background-color: var(--color-red);
   color: var(--text-on-accent);
 }
+
+.render-api-render-container {
+  position: absolute;
+  left: -9999px;
+}

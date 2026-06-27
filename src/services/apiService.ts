@@ -1,5 +1,9 @@
 import * as http from "node:http";
-import type { RenderApiPlugin, RenderRequest } from "src/types";
+import type { RenderRequest, RenderApiPlugin } from "src/types";
+
+type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+interface JsonObject { [key: string]: JsonValue | undefined }
+type JsonArray = JsonValue[];
 
 /**
  * Simple REST API server — no external dependencies.
@@ -21,16 +25,18 @@ export class ApiServer {
 
   /** Start the HTTP server on the configured port */
   start(port?: number): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       if (this.server?.listening) {
         resolve();
         return;
       }
 
       this.port = port ?? this.plugin.settings.serverPort;
-      this.server = http.createServer((req, res) =>
-        this.handleRequest(req, res),
-      );
+      this.server = http.createServer((req, res) => {
+        this.handleRequest(req, res).catch(() => {
+          this.sendJson(res, 500, { success: false, error: "Internal server error" });
+        });
+      });
 
       this.server.on("error", (err: NodeJS.ErrnoException) => {
         if (err.code === "EADDRINUSE") {
@@ -50,7 +56,7 @@ export class ApiServer {
 
   /** Stop the HTTP server */
   stop(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       if (!this.server?.listening) {
         resolve();
         return;
@@ -69,53 +75,59 @@ export class ApiServer {
     req: http.IncomingMessage,
     res: http.ServerResponse,
   ): Promise<void> {
+    // Auth check
+    if (!this.checkAuth(req)) {
+      this.sendJson(res, 401, { success: false, error: "Unauthorized" });
+      return;
+    }
+
+    // CORS
+    this.setCorsHeaders(res);
+
+    // Handle preflight
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const rawUrl = req.url ?? "/";
+    const host = req.headers.host ?? "localhost";
+    const url = new URL(rawUrl, `http://${host}`);
+    const path = url.pathname;
+
     try {
-      // Auth check
-      if (!this.checkAuth(req)) {
-        this.sendJson(res, 401, { success: false, error: "Unauthorized" });
-        return;
-      }
-
-      // CORS
-      this.setCorsHeaders(res);
-
-      // Handle preflight
-      if (req.method === "OPTIONS") {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-
-      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-      const path = url.pathname;
-
-      // Route
       if (path === "/health" || path === "/") {
         return this.handleHealth(res);
       }
       if (path === "/render" && req.method === "POST") {
-        return this.handleRender(req, res);
+        return await this.handleRender(req, res);
       }
       if (path === "/render/dataview" && req.method === "POST") {
-        return this.handleDataview(req, res);
+        return await this.handleDataview(req, res);
       }
       if (path === "/render/file" && (req.method === "GET" || req.method === "POST")) {
-        return this.handleFileRender(req, res, url);
+        return await this.handleFileRender(req, res, url);
       }
 
       this.sendJson(res, 404, { success: false, error: "Not found" });
     } catch (err) {
-      this.plugin.debugLog("[Render API] Request error", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.plugin.debugLog("[Render API] Request error", msg);
       this.sendJson(res, 500, { success: false, error: "Internal server error" });
     }
   }
 
   private async handleHealth(res: http.ServerResponse): Promise<void> {
-    const dvPlugin = (this.plugin.app as any).plugins?.plugins?.["dataview"];
+    const app = this.plugin.app as unknown as Record<string, unknown>;
+    const plugins = app.plugins as Record<string, unknown> | undefined;
+    const pluginRegistry = plugins?.plugins as Record<string, unknown> | undefined;
+    const dvAvailable = Boolean(pluginRegistry?.["dataview"]);
+
     this.sendJson(res, 200, {
       status: "running",
       port: this.port,
-      dataviewAvailable: Boolean(dvPlugin),
+      dataviewAvailable: dvAvailable,
       version: this.plugin.manifest.version,
     });
   }
@@ -125,14 +137,21 @@ export class ApiServer {
     res: http.ServerResponse,
   ): Promise<void> {
     const body = await this.readBody(req);
-    const renderReq: RenderRequest = JSON.parse(body);
+    let renderReq: RenderRequest;
+    try {
+      renderReq = JSON.parse(body) as RenderRequest;
+    } catch {
+      this.sendJson(res, 400, { success: false, error: "Invalid JSON body" });
+      return;
+    }
 
-    const renderService = new (await import("./renderService")).RenderService(
+    const { RenderService } = await import("./renderService");
+    const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as any)._component,
+      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
     );
     const result = await renderService.render(renderReq);
-    this.sendJson(res, result.success ? 200 : 400, result);
+    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
   }
 
   private async handleDataview(
@@ -140,14 +159,25 @@ export class ApiServer {
     res: http.ServerResponse,
   ): Promise<void> {
     const body = await this.readBody(req);
-    const { query, code, format } = JSON.parse(body);
+    let parsed: { query?: string; code?: string; format?: string };
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      this.sendJson(res, 400, { success: false, error: "Invalid JSON body" });
+      return;
+    }
 
-    const renderService = new (await import("./renderService")).RenderService(
+    const { RenderService } = await import("./renderService");
+    const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as any)._component,
+      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
     );
-    const result = await renderService.render({ query, code, format });
-    this.sendJson(res, result.success ? 200 : 400, result);
+    const result = await renderService.render({
+      query: parsed.query,
+      code: parsed.code,
+      format: parsed.format as "html" | "text" | "json" | undefined,
+    });
+    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
   }
 
   private async handleFileRender(
@@ -156,16 +186,23 @@ export class ApiServer {
     url: URL,
   ): Promise<void> {
     let filePath: string;
-    let format: string | undefined;
+    let format: "html" | "text" | "json" | undefined;
 
     if (req.method === "GET") {
       filePath = url.searchParams.get("path") ?? "";
-      format = url.searchParams.get("format") ?? undefined;
+      const f = url.searchParams.get("format");
+      format = (f === "html" || f === "text" || f === "json") ? f : undefined;
     } else {
       const body = await this.readBody(req);
-      const parsed = JSON.parse(body);
-      filePath = parsed.filePath ?? "";
-      format = parsed.format;
+      try {
+        const parsed = JSON.parse(body) as { filePath?: string; format?: string };
+        filePath = parsed.filePath ?? "";
+        const f = parsed.format;
+        format = (f === "html" || f === "text" || f === "json") ? f : undefined;
+      } catch {
+        this.sendJson(res, 400, { success: false, error: "Invalid JSON body" });
+        return;
+      }
     }
 
     if (!filePath) {
@@ -173,23 +210,22 @@ export class ApiServer {
       return;
     }
 
-    const renderService = new (await import("./renderService")).RenderService(
+    const { RenderService } = await import("./renderService");
+    const renderService = new RenderService(
       this.plugin.app,
-      (this.plugin as any)._component,
+      (this.plugin as unknown as { _component: Record<string, unknown> })._component as Record<string, unknown> as any,
     );
-    const result = await renderService.render({
-      filePath,
-      format: format as any,
-    });
-    this.sendJson(res, result.success ? 200 : 400, result);
+    const result = await renderService.render({ filePath, format });
+    this.sendJson(res, result.success ? 200 : 400, result as unknown as JsonObject);
   }
 
   // ---- Helpers ----
 
   private checkAuth(req: http.IncomingMessage): boolean {
     const apiKey = this.plugin.settings.apiKey;
-    if (!apiKey) return true; // no auth configured
-    return req.headers["x-api-key"] === apiKey;
+    if (!apiKey) return true;
+    const header = req.headers["x-api-key"];
+    return typeof header === "string" && header === apiKey;
   }
 
   private setCorsHeaders(res: http.ServerResponse): void {
@@ -202,7 +238,7 @@ export class ApiServer {
   private sendJson(
     res: http.ServerResponse,
     status: number,
-    data: unknown,
+    data: Record<string, unknown>,
   ): void {
     const body = JSON.stringify(data, null, 2);
     res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
