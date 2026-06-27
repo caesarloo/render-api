@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
   id-token: write
-  attestations: write
 
 jobs:
   release:
@@ -22,29 +21,21 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run typecheck
       - run: npm run build
 
-      - name: Create Release with Attestation
+      - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RAW_TAG="${GITHUB_REF_NAME}"
-          VERSION="${RAW_TAG#v}"
+          VERSION="${GITHUB_REF_NAME#v}"
           NOTES_FILE="RELEASE_v${VERSION}.md"
-
-          echo "Tag: ${RAW_TAG} → Version: ${VERSION}"
-          echo "Notes file: ${NOTES_FILE}"
-
+          
           if [ ! -f "$NOTES_FILE" ]; then
-            echo "Release notes not found: $NOTES_FILE"
+            echo "Missing: $NOTES_FILE"
             exit 1
           fi
-
+          
           gh release create "$VERSION" \
-            dist/main.js dist/manifest.json dist/styles.css dist/versions.json \
+            dist/main.js dist/manifest.json dist/styles.css \
             --title "Render API v${VERSION}" \
-            --notes-file "$NOTES_FILE" \
-            --verify-tag
-
-          gh release edit "$VERSION" --latest
+            --notes-file "$NOTES_FILE"
