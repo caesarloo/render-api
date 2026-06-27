@@ -1,4 +1,4 @@
-import { App, PluginSettingTab } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import type { SettingDefinitionItem, SettingGroupItem } from "obsidian";
 import type RenderApiPlugin from "../main";
 
@@ -93,6 +93,80 @@ export class RenderApiSettingTab extends PluginSettingTab {
         type: "group",
         heading: "Render API",
         items: groupItems,
+      } as SettingDefinitionItem,
+
+      // MCP section
+      {
+        name: "",
+        render: (_setting) => {
+          const container = _setting.settingEl;
+
+          // Section heading
+          const mcpHeading = new Setting(container)
+            .setHeading();
+          // eslint-disable-next-line obsidianmd/ui/sentence-case
+          mcpHeading.setName("MCP server");
+
+          const desc = container.createEl("p", { cls: "setting-item-description" });
+          // eslint-disable-next-line obsidianmd/ui/sentence-case
+          desc.setText("MCP (Model Context Protocol) allows AI tools like Hermes Agent and Claude Desktop to interact with your vault programmatically.");
+
+          const configDir = this.app.vault.configDir;
+          const mcpPath = `<${configDir}>/plugins/render-api/mcp-server.js`;
+
+          const hermesSetting = new Setting(container);
+          // eslint-disable-next-line obsidianmd/ui/sentence-case
+          hermesSetting.setName("Configuration for Hermes Agent");
+          hermesSetting.setDesc("Add to ~/.hermes/config.yaml");
+
+          const hermesBlock = container.createEl("pre", {
+            cls: "language-yaml",
+          });
+          hermesBlock.createEl("code", {
+            text: `mcp_servers:\n  render-api:\n    command: node\n    args:\n      - ${mcpPath}\n    enabled: true`,
+          });
+
+          const claudeSetting = new Setting(container);
+          // eslint-disable-next-line obsidianmd/ui/sentence-case
+          claudeSetting.setName("Configuration for Claude Desktop");
+          claudeSetting.setDesc("Add to claude_desktop_config.json");
+
+          const claudeBlock = container.createEl("pre", {
+            cls: "language-json",
+          });
+          claudeBlock.createEl("code", {
+            text: JSON.stringify(
+              {
+                mcpServers: {
+                  "render-api": {
+                    command: "node",
+                    args: [mcpPath],
+                  },
+                },
+              },
+              null,
+              2,
+            ),
+          });
+
+          new Setting(container)
+            .setName("Available tools")
+            .setHeading();
+
+          const toolList = container.createEl("ul");
+          const tools = [
+            { name: "health", desc: "Check server status" },
+            { name: "render_markdown", desc: "Render markdown content" },
+            { name: "render_file", desc: "Render a vault file by path" },
+            { name: "dataview_query", desc: "Execute Dataview DQL queries" },
+            { name: "dataviewjs", desc: "Execute DataviewJS code" },
+          ];
+          for (const t of tools) {
+            const li = toolList.createEl("li");
+            li.createEl("strong", { text: t.name });
+            li.appendText(` — ${t.desc}`);
+          }
+        },
       } as SettingDefinitionItem,
     ];
   }

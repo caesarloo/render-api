@@ -183,9 +183,38 @@ npm run typecheck
 npm run dev
 ```
 
-### MCP Server (planned)
+### MCP Server
 
-A stdio MCP server mode is under consideration, which would enable direct integration with AI tools that support the Model Context Protocol, eliminating the need for manual `curl` calls.
+A stdio MCP server (`mcp-server.js`) is included with the plugin. It enables direct integration with AI tools that support the Model Context Protocol, such as Hermes Agent and Claude Desktop.
+
+**MCP tools available:**
+- `health` — Check server status
+- `render_markdown` — Render markdown content
+- `render_file` — Render a vault file by path
+- `dataview_query` — Execute Dataview DQL query
+- `dataviewjs` — Execute DataviewJS code
+
+**Configuration (Hermes Agent):**
+```yaml
+mcp_servers:
+  render-api:
+    command: node
+    args:
+      - <vault>/.obsidian/plugins/render-api/mcp-server.js
+    enabled: true
+```
+
+**Configuration (Claude Desktop):**
+```json
+{
+  "mcpServers": {
+    "render-api": {
+      "command": "node",
+      "args": ["<vault>/.obsidian/plugins/render-api/mcp-server.js"]
+    }
+  }
+}
+```
 
 ---
 
@@ -312,9 +341,38 @@ npm run typecheck  # 类型检查
 npm run dev      # 开发模式（watch）
 ```
 
-### MCP 服务（规划中）
+### MCP 服务
 
-计划支持 stdio MCP Server 模式，让 AI 工具通过 Model Context Protocol 直接集成，无需手动调用 curl。
+插件内置 stdio MCP Server（`mcp-server.js`），支持通过 Model Context Protocol 直接集成 AI 工具，无需手动调用 curl。
+
+**可用的 MCP 工具：**
+- `health` — 检查服务状态
+- `render_markdown` — 渲染 Markdown 内容
+- `render_file` — 按路径渲染库内文件
+- `dataview_query` — 执行 Dataview DQL 查询
+- `dataviewjs` — 执行 DataviewJS 代码
+
+**Hermes Agent 配置：**
+```yaml
+mcp_servers:
+  render-api:
+    command: node
+    args:
+      - <库目录>/.obsidian/plugins/render-api/mcp-server.js
+    enabled: true
+```
+
+**Claude Desktop 配置：**
+```json
+{
+  "mcpServers": {
+    "render-api": {
+      "command": "node",
+      "args": ["<库目录>/.obsidian/plugins/render-api/mcp-server.js"]
+    }
+  }
+}
+```
 
 ---
 

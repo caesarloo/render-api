@@ -10,7 +10,8 @@ async function syncDistAssets() {
   await cp("versions.json", "dist/versions.json").catch(() => {});
 }
 
-const context = await esbuild.context({
+// Main plugin bundle
+const mainCtx = await esbuild.context({
   entryPoints: ["src/main.ts"],
   bundle: true,
   external: ["obsidian", "electron"],
@@ -20,14 +21,30 @@ const context = await esbuild.context({
   logLevel: "info",
   sourcemap: isProduction ? false : "inline",
   treeShaking: true,
-  outfile: "dist/main.js"
+  outfile: "dist/main.js",
+});
+
+// MCP server bundle
+const mcpCtx = await esbuild.context({
+  entryPoints: ["src/mcp-server.ts"],
+  bundle: true,
+  external: [],
+  format: "cjs",
+  target: "es2020",
+  platform: "node",
+  logLevel: "info",
+  sourcemap: false,
+  treeShaking: true,
+  outfile: "dist/mcp-server.js",
 });
 
 if (isProduction) {
-  await context.rebuild();
+  await mainCtx.rebuild();
+  await mcpCtx.rebuild();
   await syncDistAssets();
-  await context.dispose();
+  await mainCtx.dispose();
+  await mcpCtx.dispose();
 } else {
   await syncDistAssets();
-  await context.watch();
+  await Promise.all([mainCtx.watch(), mcpCtx.watch()]);
 }
