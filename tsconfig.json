@@ -6,7 +6,7 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": ["DOM", "ES2020"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "baseUrl": ".",
     "outDir": "dist"
   },

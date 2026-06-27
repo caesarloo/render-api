@@ -1,6 +1,6 @@
 {
   "name": "obsidian-render-api",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Expose dataview/Tasks rendering results via REST API and MCP Server",
   "main": "dist/main.js",
@@ -8,15 +8,20 @@
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
     "lint": "eslint . --ext .ts,.js,.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.10.2",
     "esbuild": "^0.25.0",
     "eslint": "^9.39.3",
     "eslint-plugin-obsidianmd": "^0.1.9",
+    "jest": "^30.2.0",
     "obsidian": "^1.8.7",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.56.1"
   }
