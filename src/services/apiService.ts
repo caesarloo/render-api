@@ -27,11 +27,14 @@ export class ApiServer {
   start(port?: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.server?.listening) {
+        console.log("[Render API] ApiServer.start() called but already listening");
         resolve();
         return;
       }
 
       this.port = port ?? this.plugin.settings.serverPort;
+      console.log("[Render API] ApiServer creating HTTP server on port", this.port);
+
       this.server = http.createServer((req, res) => {
         this.handleRequest(req, res).catch(() => {
           this.sendJson(res, 500, { success: false, error: "Internal server error" });
@@ -39,6 +42,7 @@ export class ApiServer {
       });
 
       this.server.on("error", (err: NodeJS.ErrnoException) => {
+        console.error("[Render API] HTTP server error:", err.code, err.message);
         if (err.code === "EADDRINUSE") {
           this.server = null;
           reject(new Error(`Port ${this.port} is in use`));
@@ -52,6 +56,7 @@ export class ApiServer {
         if (addr && typeof addr === "object") {
           this.port = addr.port;
         }
+        console.log("[Render API] HTTP server listening on 127.0.0.1:" + this.port);
         this.plugin.debugLog(`[Render API] Server started on port ${this.port}`);
         resolve();
       });

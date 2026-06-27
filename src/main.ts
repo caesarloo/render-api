@@ -15,6 +15,7 @@ export default class RenderApiPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    console.log("[Render API] Plugin loaded, settings:", this.settings);
 
     this.addCommand({
       id: "start-server",
@@ -39,11 +40,16 @@ export default class RenderApiPlugin extends Plugin {
     });
 
     this.addSettingTab(new RenderApiSettingTab(this.app, this));
+    console.log("[Render API] Setting tab registered");
 
     if (this.settings.enableServerOnStart) {
+      console.log("[Render API] enableServerOnStart=true, waiting for layout ready...");
       this.app.workspace.onLayoutReady(() => {
+        console.log("[Render API] Layout ready, starting server...");
         void this.startApiServer();
       });
+    } else {
+      console.log("[Render API] enableServerOnStart=false, server will not start automatically");
     }
 
     this.debugLog("[Render API] Plugin loaded");
@@ -65,17 +71,22 @@ export default class RenderApiPlugin extends Plugin {
 
   async startApiServer(): Promise<void> {
     if (this.apiServer?.isRunning) {
+      console.log("[Render API] Server already running at", this.apiServer.address);
       new Notice(`Render API 已在 ${this.apiServer.address} 运行`);
       return;
     }
 
+    console.log("[Render API] Creating ApiServer instance...");
     try {
       this.apiServer = new ApiServer(this);
+      console.log("[Render API] Calling apiServer.start() on port", this.settings.serverPort);
       await this.apiServer.start(this.settings.serverPort);
+      console.log("[Render API] Server started successfully at", this.apiServer.address);
       new Notice(`Render API 服务已启动 → ${this.apiServer.address}`);
       this.debugLog(`[Render API] Server started on port ${this.settings.serverPort}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Render API] Failed to start server:", err);
       if (msg.includes("in use")) {
         new Notice(t("server.portUnavailable", this.settings.language).replace("{port}", String(this.settings.serverPort)));
       } else {
