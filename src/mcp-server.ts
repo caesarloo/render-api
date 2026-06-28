@@ -21,6 +21,8 @@
 
 import * as http from "node:http";
 import * as readline from "node:readline";
+import * as fs from "node:fs";
+import * as cp from "node:child_process";
 
 // ---- Config ----
 const args = process.argv.slice(2);
@@ -127,25 +129,25 @@ function resolveWSLHosts(): string[] {
   const candidates: string[] = [];
   try {
     // Check WSL indicator
-    const osRelease = require("node:fs").readFileSync("/proc/sys/kernel/osrelease", "utf8").toLowerCase();
+    const osRelease = fs.readFileSync("/proc/sys/kernel/osrelease", "utf8").toLowerCase();
     if (!osRelease.includes("wsl") && !osRelease.includes("microsoft")) {
       return []; // Not WSL
     }
     // 1. Default gateway (ip route)
     try {
-      const routes = require("node:child_process").execSync("ip route show default", { encoding: "utf8" });
+      const routes = cp.execSync("ip route show default", { encoding: "utf8" });
       const gw = routes.match(/via\s+(\S+)/);
       if (gw) candidates.push(gw[1]);
     } catch { /* skip */ }
     // 2. Resolv.conf nameserver (WSL2 DNS proxy, may work as host)
     try {
-      const resolv = require("node:fs").readFileSync("/etc/resolv.conf", "utf8");
+      const resolv = fs.readFileSync("/etc/resolv.conf", "utf8");
       const match = resolv.match(/^nameserver\s+(\S+)/m);
       if (match) candidates.push(match[1]);
     } catch { /* skip */ }
     // 3. Try powershell.exe to get Windows LAN IP
     try {
-      const ps = require("node:child_process").execSync(
+      const ps = cp.execSync(
         'powershell.exe -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -eq \'WLAN\' -and $_.PrefixOrigin -eq \'Dhcp\' }).IPAddress"',
         { encoding: "utf8", timeout: 5000 }
       ).trim();

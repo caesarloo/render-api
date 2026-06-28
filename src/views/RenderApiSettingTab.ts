@@ -22,12 +22,12 @@ export class RenderApiSettingTab extends PluginSettingTab {
       try {
         await navigator.clipboard.writeText(text);
         copyBtn.setText("Copied!");
-        setTimeout(() => {
+        window.setTimeout(() => {
           copyBtn.setText("Copy");
         }, 2000);
       } catch {
         // Fallback: select text
-        const range = document.createRange();
+        const range = activeDocument.createRange();
         range.selectNodeContents(pre);
         const sel = window.getSelection();
         if (sel) {
@@ -35,7 +35,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
           sel.addRange(range);
         }
         copyBtn.setText("Copied!");
-        setTimeout(() => {
+        window.setTimeout(() => {
           copyBtn.setText("Copy");
         }, 2000);
       }
@@ -43,6 +43,8 @@ export class RenderApiSettingTab extends PluginSettingTab {
   }
 
   display(): void {
+    // getSettingDefinitions() replaces display() since Obsidian 1.13.0
+    // Keeping display() for backward compatibility with older Obsidian versions
     const { containerEl } = this;
     containerEl.empty();
 
