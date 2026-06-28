@@ -5,10 +5,11 @@
  * and exposes its capabilities as MCP tools.
  *
  * Usage:
- *   node dist/mcp-server.js [--port 27123] [--host 127.0.0.1]
- *
- * The server auto-detects the Render API port if the specified
- * port is not available. It scans ports 27123-27133.
+*   node dist/mcp-server.js [--port 27123] [--host 127.0.0.1]
+*
+* The server auto-detects the Render API port if the specified
+* port is not available. It scans ports 27123-27133.
+* On WSL, it also tries the Windows host IP automatically.
  *
  * MCP client config (hermes, claude desktop, etc.):
  *   {
@@ -119,6 +120,41 @@ async function detectServer(host: string, preferred: number): Promise<number | n
     }
   }
   return null;
+}
+
+/** Detect if running inside WSL and collect possible Windows host IPs. */
+function resolveWSLHosts(): string[] {
+  const candidates: string[] = [];
+  try {
+    // Check WSL indicator
+    const osRelease = require("node:fs").readFileSync("/proc/sys/kernel/osrelease", "utf8").toLowerCase();
+    if (!osRelease.includes("wsl") && !osRelease.includes("microsoft")) {
+      return []; // Not WSL
+    }
+    // 1. Default gateway (ip route)
+    try {
+      const routes = require("node:child_process").execSync("ip route show default", { encoding: "utf8" });
+      const gw = routes.match(/via\s+(\S+)/);
+      if (gw) candidates.push(gw[1]);
+    } catch { /* skip */ }
+    // 2. Resolv.conf nameserver (WSL2 DNS proxy, may work as host)
+    try {
+      const resolv = require("node:fs").readFileSync("/etc/resolv.conf", "utf8");
+      const match = resolv.match(/^nameserver\s+(\S+)/m);
+      if (match) candidates.push(match[1]);
+    } catch { /* skip */ }
+    // 3. Try powershell.exe to get Windows LAN IP
+    try {
+      const ps = require("node:child_process").execSync(
+        'powershell.exe -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -eq \'WLAN\' -and $_.PrefixOrigin -eq \'Dhcp\' }).IPAddress"',
+        { encoding: "utf8", timeout: 5000 }
+      ).trim();
+      if (ps) candidates.push(ps);
+    } catch { /* skip */ }
+  } catch {
+    // Not WSL or resolution failed
+  }
+  return [...new Set(candidates)]; // Deduplicate
 }
 
 // ---- MCP Protocol ----
@@ -261,7 +297,7 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
         },
         serverInfo: {
           name: "render-api-mcp",
-          version: "0.1.13",
+          version: "0.1.14",
         },
       });
       break;
@@ -316,18 +352,33 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
 
 // ---- Main ----
 async function main(): Promise<void> {
-  // Dynamic port detection
-  detectedPort = await detectServer(HOST, CLI_PORT);
-  if (detectedPort) {
-    activeBaseUrl = `http://${HOST}:${detectedPort}`;
-    try {
-      const health = await apiGet("/health") as Record<string, unknown>;
-      process.stderr.write(`[render-api-mcp] Connected to Render API v${health.version ?? "unknown"} at ${HOST}:${detectedPort}\n`);
-    } catch {
-      process.stderr.write(`[render-api-mcp] Connected to Render API at ${HOST}:${detectedPort}\n`);
+  // Auto-detect hosts: configured host first, then WSL Windows hosts if detected
+  const hostsToTry: { host: string; label: string }[] = [{ host: HOST, label: HOST }];
+  const wslHosts = resolveWSLHosts();
+  for (const wh of wslHosts) {
+    if (wh !== HOST) {
+      hostsToTry.push({ host: wh, label: `WSL host (${wh})` });
     }
-  } else {
-    process.stderr.write(`[render-api-mcp] Warning: Render API not found on ports ${Math.max(CLI_PORT - 5, 1024)}-${CLI_PORT + 5}. Start the plugin server first.\n`);
+  }
+
+  // Try each host until we find the server
+  for (const { host, label } of hostsToTry) {
+    process.stderr.write(`[render-api-mcp] Trying ${label}...\n`);
+    detectedPort = await detectServer(host, CLI_PORT);
+    if (detectedPort) {
+      activeBaseUrl = `http://${host}:${detectedPort}`;
+      try {
+        const health = await apiGet("/health") as Record<string, unknown>;
+        process.stderr.write(`[render-api-mcp] Connected to Render API v${health.version ?? "unknown"} at ${host}:${detectedPort}\n`);
+      } catch {
+        process.stderr.write(`[render-api-mcp] Connected to Render API at ${host}:${detectedPort}\n`);
+      }
+      break;
+    }
+  }
+
+  if (!detectedPort) {
+    process.stderr.write(`[render-api-mcp] Warning: Render API not found. Tried: ${hostsToTry.map(h => h.label).join(", ")} ports ${Math.max(CLI_PORT - 5, 1024)}-${CLI_PORT + 5}. Start the plugin server first.\n`);
   }
 
   process.stderr.write(`[render-api-mcp] MCP server ready (stdio)\n`);

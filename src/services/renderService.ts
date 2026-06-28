@@ -110,38 +110,10 @@ export class RenderService {
     }
 
     try {
-      const output: string[] = [];
-      const dvProxy = new Proxy(dvApi, {
-        get(target, prop, receiver) {
-          if (prop === "output") {
-            return (...args: unknown[]) => {
-              output.push(args.map(String).join(" "));
-            };
-          }
-          if (prop === "header") {
-            return (_level: number, ...args: unknown[]) => {
-              output.push(args.map(String).join(" "));
-            };
-          }
-          return Reflect.get(target, prop, receiver) as unknown;
-        },
-      });
-
-      await dvApi.execute(code, dvProxy);
-      const text = output.join("\n");
-
-      if (format === "json") {
-        return { success: true, data: { output }, mimeType: "application/json" };
-      }
-
-      const html = `<pre>${this.escapeHtml(text)}</pre>`;
-      return {
-        success: true,
-        text,
-        html,
-        data: { output },
-        mimeType: format === "text" ? "text/plain" : "text/html",
-      };
+      // Render dataviewJS code as a markdown code block so it goes through
+      // Obsidian's full post-processor pipeline (same as opening a real note)
+      const wrapped = "```dataviewjs\n" + code + "\n```";
+      return await this.renderMarkdown(wrapped, "", format);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: `JS execution failed: ${msg}` };

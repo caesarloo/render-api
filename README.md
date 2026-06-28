@@ -8,9 +8,9 @@
 
 **Render API** is a desktop-only Obsidian plugin that exposes dataview, Tasks, and general markdown rendering results via a local REST API. It allows AI tools — such as Hermes Agent, Claude Code, or custom scripts — to programmatically access your vault's rendered content.
 
-> ⚠️ **Permissions**: This plugin starts a local HTTP server (Node.js `http` module, bound to `127.0.0.1`) and may invoke the dataview plugin's JavaScript API when enabled. It does not access external networks beyond what you configure. These permissions are required to expose rendering results via an API and cannot be replaced by the Obsidian vault API.
+|> ⚠️ **Permissions**: This plugin starts a local HTTP server (Node.js `http` module, bound to `0.0.0.0`) and may invoke the dataview plugin's JavaScript API when enabled. It does not access external networks beyond what you configure. These permissions are required to expose rendering results via an API and cannot be replaced by the Obsidian vault API.
 
-**Current stable version**: `0.1.13`
+**Current stable version**: `0.1.14`
 
 **Latest release**: https://github.com/caesarloo/render-api/releases
 
@@ -61,7 +61,7 @@ Check server status and capabilities.
   "status": "running",
   "port": 27123,
   "dataviewAvailable": true,
-  "version": "0.1.13"
+  "version": "0.1.14"
 }
 ```
 
@@ -224,9 +224,9 @@ mcp_servers:
 
 **Render API** 是一个 Obsidian **桌面端**插件，将 dataview、Tasks 等插件的渲染结果通过本地 REST API 暴露出来，让 AI 工具（如 Hermes Agent、Claude Code）或自定义脚本程序化地访问你的笔记库渲染内容。
 
-> ⚠️ **权限说明**：本插件启动一个本地 HTTP 服务（Node.js `http` 模块，绑定到 `127.0.0.1`），并可能在你开启相关功能时调用 dataview 插件的 JavaScript API。插件不会主动访问外部网络。这些权限是 API 服务所必需的，无法通过 Obsidian vault API 替代。
+> ⚠️ **权限说明**：本插件启动一个本地 HTTP 服务（Node.js `http` 模块，绑定到 `0.0.0.0`），并可能在你开启相关功能时调用 dataview 插件的 JavaScript API。插件不会主动访问外部网络。这些权限是 API 服务所必需的，无法通过 Obsidian vault API 替代。
 
-当前稳定版本：`0.1.13`
+当前稳定版本：`0.1.14`
 
 最新发布页：https://github.com/caesarloo/render-api/releases
 

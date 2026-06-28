@@ -150,17 +150,19 @@ describe('RenderService', () => {
     it('executes dataviewJS code and captures output', async () => {
       const mockDvApi = {
         query: jest.fn(),
-        execute: jest.fn().mockImplementation(async (_code: string, _dv: unknown) => {
-          const dv = _dv as Record<string, unknown>;
-          const output = dv.output as (...args: unknown[]) => void;
-          output('Hello, world!');
-          output('Count:', 42);
-        }),
+        execute: jest.fn(),
       } as unknown as Record<string, unknown>;
       const service = new RenderService(createMockApp(mockDvApi), mockComponent);
 
+      mockRender.mockImplementationOnce(
+        (_app: App, content: string, el: HTMLElement, _path: string, _component: Component) => {
+          // Simulate dataviewjs rendering via Obsidian's post-processor pipeline
+          el.innerHTML = '<p>Hello, world!</p><p>Count: 42</p>';
+        },
+      );
+
       const result = await service.render({
-        code: 'dv.output("Hello")',
+        code: 'dv.span("Hello")',
         format: 'text',
       });
 
@@ -172,9 +174,13 @@ describe('RenderService', () => {
     it('reports error when dataviewJS execution throws', async () => {
       const mockDvApi = {
         query: jest.fn(),
-        execute: jest.fn().mockRejectedValue(new Error('Undefined variable')),
+        execute: jest.fn(),
       } as unknown as Record<string, unknown>;
       const service = new RenderService(createMockApp(mockDvApi), mockComponent);
+
+      mockRender.mockImplementationOnce(() => {
+        throw new Error('Undefined variable');
+      });
 
       const result = await service.render({
         code: 'dv.something.bad()',

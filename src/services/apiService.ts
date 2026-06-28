@@ -51,12 +51,12 @@ export class ApiServer {
         }
       });
 
-      this.server.listen(this.port, "127.0.0.1", () => {
+      this.server.listen(this.port, "0.0.0.0", () => {
         const addr = this.server?.address();
         if (addr && typeof addr === "object") {
           this.port = addr.port;
         }
-        console.log("[Render API] HTTP server listening on 127.0.0.1:" + this.port);
+        console.log("[Render API] HTTP server listening on 0.0.0.0:" + this.port);
         this.plugin.debugLog(`[Render API] Server started on port ${this.port}`);
         resolve();
       });

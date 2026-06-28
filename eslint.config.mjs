@@ -61,7 +61,7 @@ export default tseslint.config(
   {
     plugins: { obsidianmd: obsidianPlugin },
     files: ["src/**/*.ts"],
-    ignores: ["src/__tests__/**"],
+    ignores: ["src/mcp-server.ts", "src/__tests__/**"],
     rules: {
       "obsidianmd/no-plugin-as-component": "error",
       "obsidianmd/no-view-references-in-plugin": "error",
@@ -77,13 +77,14 @@ export default tseslint.config(
       "node_modules/",
       "esbuild.config.mjs",
       "jest.config.js",
+      "src/mcp-server.ts",
     ],
   },
 
   // TypeScript type-checked config: source .ts files only (excl. tests)
   {
     files: ["src/**/*.ts"],
-    ignores: ["src/__tests__/**"],
+    ignores: ["src/mcp-server.ts", "src/__tests__/**"],
     languageOptions: {
       parserOptions: {
         project: "./tsconfig.json",
