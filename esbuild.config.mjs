@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import { cp, mkdir } from "node:fs/promises";
+import { cp, mkdir, readFile } from "node:fs/promises";
 
 const isProduction = process.argv[2] === "production";
 
@@ -10,21 +10,7 @@ async function syncDistAssets() {
   await cp("versions.json", "dist/versions.json").catch(() => {});
 }
 
-// Main plugin bundle
-const mainCtx = await esbuild.context({
-  entryPoints: ["src/main.ts"],
-  bundle: true,
-  external: ["obsidian", "electron"],
-  format: "cjs",
-  target: "es2020",
-  platform: "node",
-  logLevel: "info",
-  sourcemap: isProduction ? false : "inline",
-  treeShaking: true,
-  outfile: "dist/main.js",
-});
-
-// MCP server bundle
+// MCP server bundle — build FIRST so main.js can embed it
 const mcpCtx = await esbuild.context({
   entryPoints: ["src/mcp-server.ts"],
   bundle: true,
@@ -39,12 +25,37 @@ const mcpCtx = await esbuild.context({
 });
 
 if (isProduction) {
-  await mainCtx.rebuild();
   await mcpCtx.rebuild();
+} else {
+  await mcpCtx.watch();
+}
+
+// Read the built mcp-server code so we can embed it into main.js
+const mcpServerCode = await readFile("dist/mcp-server.js", "utf8");
+
+// Main plugin bundle — with MCP server code injected
+const mainCtx = await esbuild.context({
+  entryPoints: ["src/main.ts"],
+  bundle: true,
+  external: ["obsidian", "electron"],
+  format: "cjs",
+  target: "es2020",
+  platform: "node",
+  logLevel: "info",
+  sourcemap: isProduction ? false : "inline",
+  treeShaking: true,
+  outfile: "dist/main.js",
+  define: {
+    "MCP_SERVER_CODE": JSON.stringify(mcpServerCode),
+  },
+});
+
+if (isProduction) {
+  await mainCtx.rebuild();
   await syncDistAssets();
   await mainCtx.dispose();
   await mcpCtx.dispose();
 } else {
   await syncDistAssets();
-  await Promise.all([mainCtx.watch(), mcpCtx.watch()]);
+  await mainCtx.watch();
 }

@@ -6,6 +6,9 @@ import { t } from "./i18n";
 import type { RenderApiSettings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 
+/** Injected at build time by esbuild — the bundled mcp-server.js source code. */
+declare const MCP_SERVER_CODE: string;
+
 export default class RenderApiPlugin extends Plugin {
   settings!: RenderApiSettings;
   apiServer: ApiServer | null = null;
@@ -16,6 +19,9 @@ export default class RenderApiPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     console.log("[Render API] Plugin loaded, settings:", this.settings);
+
+    // Write mcp-server.js to disk so MCP stdio works for marketplace users
+    await this.writeMcpServerFile();
 
     this.addCommand({
       id: "start-server",
@@ -63,6 +69,30 @@ export default class RenderApiPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const loaded: unknown = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+  }
+
+  /** Write the embedded MCP server script to the plugin directory on first load. */
+  private async writeMcpServerFile(): Promise<void> {
+    try {
+      const pluginDir = `${this.app.vault.configDir}/plugins/render-api`;
+      const adapter = this.app.vault.adapter;
+      // Ensure directory exists
+      if (!(await adapter.exists(pluginDir))) {
+        await adapter.mkdir(pluginDir);
+      }
+      const targetPath = `${pluginDir}/mcp-server.js`;
+      const existing = await adapter.exists(targetPath);
+      if (existing) {
+        // Check if existing file matches embedded code — skip write if unchanged
+        const current = await adapter.read(targetPath);
+        if (current === MCP_SERVER_CODE) return;
+      }
+      await adapter.write(targetPath, MCP_SERVER_CODE);
+      console.log("[Render API] mcp-server.js written to", targetPath);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[Render API] Failed to write mcp-server.js:", msg);
+    }
   }
 
   async saveSettings(): Promise<void> {
