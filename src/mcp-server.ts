@@ -299,7 +299,7 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
         },
         serverInfo: {
           name: "render-api-mcp",
-          version: "0.1.14",
+          version: "0.1.15",
         },
       });
       break;
