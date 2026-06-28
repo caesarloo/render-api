@@ -10,7 +10,7 @@
 
 |> ⚠️ **Permissions**: This plugin starts a local HTTP server (Node.js `http` module, bound to `0.0.0.0`), may invoke the dataview plugin's JavaScript API when enabled, and accesses the system clipboard for the MCP config "Copy" button in settings. It does not access external networks beyond what you configure. These permissions are required to expose rendering results via an API and cannot be replaced by the Obsidian vault API.
 
-**Current stable version**: `0.1.20`
+**Current stable version**: `0.1.21`
 
 **Latest release**: https://github.com/caesarloo/render-api/releases
 

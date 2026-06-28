@@ -1,4 +1,5 @@
-import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
+import type { SettingDefinitionItem } from "obsidian";
 import type RenderApiPlugin from "../main";
 
 export class RenderApiSettingTab extends PluginSettingTab {
