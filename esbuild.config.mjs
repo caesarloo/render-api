@@ -10,9 +10,9 @@ async function syncDistAssets() {
   await cp("versions.json", "dist/versions.json").catch(() => {});
 }
 
-// MCP server bundle — build FIRST so main.js can embed it
+// MCP server bundle — built from shared core module (no obsidian dependency)
 const mcpCtx = await esbuild.context({
-  entryPoints: ["src/mcp-server.ts"],
+  entryPoints: ["src/mcp-server-core.ts"],
   bundle: true,
   external: [],
   format: "cjs",

@@ -1,15 +1,15 @@
 /**
- * MCP stdio server for Render API
+ * MCP stdio server core for Render API
  *
  * Connects to the running Obsidian Render API plugin via HTTP
- * and exposes its capabilities as MCP tools.
+ * and exposes its capabilities as MCP tools. No obsidian dependency.
  *
  * Usage:
-*   node dist/mcp-server.js [--port 27123] [--host 127.0.0.1]
-*
-* The server auto-detects the Render API port if the specified
-* port is not available. It scans ports 27123-27133.
-* On WSL, it also tries the Windows host IP automatically.
+ *   node dist/mcp-server.js [--port 27123] [--host 127.0.0.1]
+ *
+ * The server auto-detects the Render API port if the specified
+ * port is not available. It scans ports 27123-27133.
+ * On WSL, it also tries the Windows host IP automatically.
  *
  * MCP client config (hermes, claude desktop, etc.):
  *   {
@@ -21,8 +21,6 @@
 
 import * as http from "node:http";
 import * as readline from "node:readline";
-import * as fs from "node:fs";
-import * as cp from "node:child_process";
 
 // ---- Config ----
 const args = process.argv.slice(2);
@@ -124,39 +122,15 @@ async function detectServer(host: string, preferred: number): Promise<number | n
   return null;
 }
 
-/** Detect if running inside WSL and collect possible Windows host IPs. */
+/** Detect if running inside WSL and collect possible Windows host IPs.
+ *  Uses only environment variables — no fs/child_process to pass plugin review. */
 function resolveWSLHosts(): string[] {
-  const candidates: string[] = [];
-  try {
-    // Check WSL indicator
-    const osRelease = fs.readFileSync("/proc/sys/kernel/osrelease", "utf8").toLowerCase();
-    if (!osRelease.includes("wsl") && !osRelease.includes("microsoft")) {
-      return []; // Not WSL
-    }
-    // 1. Default gateway (ip route)
-    try {
-      const routes = cp.execSync("ip route show default", { encoding: "utf8" });
-      const gw = routes.match(/via\s+(\S+)/);
-      if (gw) candidates.push(gw[1]);
-    } catch { /* skip */ }
-    // 2. Resolv.conf nameserver (WSL2 DNS proxy, may work as host)
-    try {
-      const resolv = fs.readFileSync("/etc/resolv.conf", "utf8");
-      const match = resolv.match(/^nameserver\s+(\S+)/m);
-      if (match) candidates.push(match[1]);
-    } catch { /* skip */ }
-    // 3. Try powershell.exe to get Windows LAN IP
-    try {
-      const ps = cp.execSync(
-        'powershell.exe -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -eq \'WLAN\' -and $_.PrefixOrigin -eq \'Dhcp\' }).IPAddress"',
-        { encoding: "utf8", timeout: 5000 }
-      ).trim();
-      if (ps) candidates.push(ps);
-    } catch { /* skip */ }
-  } catch {
-    // Not WSL or resolution failed
+  // WSL injects WSL_DISTRO_NAME automatically
+  if (!process.env.WSL_DISTRO_NAME) {
+    return []; // Not WSL
   }
-  return [...new Set(candidates)]; // Deduplicate
+  // Common WSL2 vEthernet gateway IPs
+  return ["172.17.224.1", "172.17.240.1", "172.17.0.1", "172.17.128.1"];
 }
 
 // ---- MCP Protocol ----
@@ -222,10 +196,10 @@ const tools: ToolDefinition[] = [
       },
       required: ["content"],
     },
-    handler: async (args) => {
+    handler: async (args_) => {
       return await apiPost("/render", {
-        content: args.content,
-        format: args.format ?? "html",
+        content: args_.content,
+        format: args_.format ?? "html",
       });
     },
   },
@@ -240,10 +214,10 @@ const tools: ToolDefinition[] = [
       },
       required: ["filePath"],
     },
-    handler: async (args) => {
+    handler: async (args_) => {
       return await apiPost("/render", {
-        filePath: args.filePath,
-        format: args.format ?? "html",
+        filePath: args_.filePath,
+        format: args_.format ?? "html",
       });
     },
   },
@@ -258,10 +232,10 @@ const tools: ToolDefinition[] = [
       },
       required: ["query"],
     },
-    handler: async (args) => {
+    handler: async (args_) => {
       return await apiPost("/render/dataview", {
-        query: args.query,
-        format: args.format ?? "json",
+        query: args_.query,
+        format: args_.format ?? "json",
       });
     },
   },
@@ -276,10 +250,10 @@ const tools: ToolDefinition[] = [
       },
       required: ["code"],
     },
-    handler: async (args) => {
+    handler: async (args_) => {
       return await apiPost("/render/dataview", {
-        code: args.code,
-        format: args.format ?? "text",
+        code: args_.code,
+        format: args_.format ?? "text",
       });
     },
   },
@@ -353,7 +327,7 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
 }
 
 // ---- Main ----
-async function main(): Promise<void> {
+export async function startMcpServer(): Promise<void> {
   // Auto-detect hosts: configured host first, then WSL Windows hosts if detected
   const hostsToTry: { host: string; label: string }[] = [{ host: HOST, label: HOST }];
   const wslHosts = resolveWSLHosts();
@@ -403,4 +377,7 @@ async function main(): Promise<void> {
   });
 }
 
-void main();
+// Auto-start when run directly as CLI (not imported)
+if (require.main === module) {
+  void startMcpServer();
+}

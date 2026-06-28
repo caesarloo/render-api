@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import type RenderApiPlugin from "../main";
 
 export class RenderApiSettingTab extends PluginSettingTab {
@@ -44,11 +44,8 @@ export class RenderApiSettingTab extends PluginSettingTab {
     });
   }
 
-  /** @deprecated — kept for backward compatibility with Obsidian <1.13.0 */
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- @ts-ignore is needed: @ts-expect-error does not suppress deprecation warnings (only errors)
-  // @ts-ignore — display() still works and is simpler than getSettingDefinitions() for complex UIs
-  display(): void {
-    const { containerEl } = this;
+  /** Build the settings UI into the given container element. */
+  private renderSettings(containerEl: HTMLElement): void {
     containerEl.empty();
 
     // ── Server status ──
@@ -65,7 +62,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
           } else {
             await this.plugin.startApiServer();
           }
-          this.display();
+          this.renderSettings(containerEl);
         });
       });
 
@@ -209,5 +206,16 @@ export class RenderApiSettingTab extends PluginSettingTab {
       li.createEl("strong", { text: t.name });
       li.appendText(` — ${t.desc}`);
     }
+  }
+
+  /** Backward compatibility with Obsidian <1.13.0 — called by the framework. */
+  display(): void {
+    this.renderSettings(this.containerEl);
+  }
+
+  /** @since Obsidian 1.13.0 — preferred over display(). */
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    this.renderSettings(this.containerEl);
+    return [];
   }
 }

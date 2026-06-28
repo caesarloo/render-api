@@ -77,7 +77,6 @@ export default tseslint.config(
       "node_modules/",
       "esbuild.config.mjs",
       "jest.config.js",
-      "src/mcp-server.ts",
     ],
   },
 
