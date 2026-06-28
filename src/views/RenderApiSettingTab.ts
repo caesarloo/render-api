@@ -45,7 +45,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
   }
 
   /** @deprecated — kept for backward compatibility with Obsidian <1.13.0 */
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- @ts-ignore is needed: @ts-expect-error does not suppress deprecation warnings (only errors)
   // @ts-ignore — display() still works and is simpler than getSettingDefinitions() for complex UIs
   display(): void {
     const { containerEl } = this;
