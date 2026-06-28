@@ -27,7 +27,7 @@ jobs:
       - name: Generate artifact attestations
         uses: actions/attest@v4
         with:
-          subject-path: dist/main.js, dist/manifest.json, dist/styles.css, dist/versions.json
+          subject-path: dist/main.js, dist/manifest.json, dist/styles.css
 
       - name: Create Release
         env:
@@ -42,9 +42,9 @@ jobs:
           fi
 
           gh release create "$VERSION" \
-            dist/main.js dist/manifest.json dist/styles.css dist/versions.json \
+            dist/main.js dist/manifest.json dist/styles.css \
             --title "Render API v${VERSION}" \
             --notes-file "$NOTES_FILE" || {
             echo "Release already exists, updating assets..."
-            gh release upload "$VERSION" dist/main.js dist/manifest.json dist/styles.css dist/versions.json --clobber
+            gh release upload "$VERSION" dist/main.js dist/manifest.json dist/styles.css --clobber
           }
