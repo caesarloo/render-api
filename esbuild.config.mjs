@@ -7,7 +7,6 @@ async function syncDistAssets() {
   await mkdir("dist", { recursive: true });
   await cp("manifest.json", "dist/manifest.json");
   await cp("styles.css", "dist/styles.css");
-  await cp("versions.json", "dist/versions.json").catch(() => {});
 }
 
 // MCP server bundle — built from shared core module (no obsidian dependency)
