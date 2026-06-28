@@ -1,7 +1,7 @@
 {
   "id": "render-api",
   "name": "Render API",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "minAppVersion": "1.13.0",
   "description": "Expose dataview/Tasks rendering results via REST API and MCP Server. Let AI tools access your vault's rendered content programmatically.",
   "author": "caesarloo",
