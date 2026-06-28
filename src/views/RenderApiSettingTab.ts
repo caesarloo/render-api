@@ -18,27 +18,29 @@ export class RenderApiSettingTab extends PluginSettingTab {
       cls: "render-api-copy-btn",
       text: "Copy",
     });
-    copyBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-        copyBtn.setText("Copied!");
-        window.setTimeout(() => {
-          copyBtn.setText("Copy");
-        }, 2000);
-      } catch {
-        // Fallback: select text
-        const range = activeDocument.createRange();
-        range.selectNodeContents(pre);
-        const sel = window.getSelection();
-        if (sel) {
-          sel.removeAllRanges();
-          sel.addRange(range);
+    copyBtn.addEventListener("click", () => {
+      void (async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.setText("Copied!");
+          window.setTimeout(() => {
+            copyBtn.setText("Copy");
+          }, 2000);
+        } catch {
+          // Fallback: select text
+          const range = activeDocument.createRange();
+          range.selectNodeContents(pre);
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          copyBtn.setText("Copied!");
+          window.setTimeout(() => {
+            copyBtn.setText("Copy");
+          }, 2000);
         }
-        copyBtn.setText("Copied!");
-        window.setTimeout(() => {
-          copyBtn.setText("Copy");
-        }, 2000);
-      }
+      })();
     });
   }
 

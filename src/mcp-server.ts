@@ -90,7 +90,7 @@ function checkPort(host: string, port: number): Promise<boolean> {
       res.on("data", (chunk: string) => (chunks += chunk));
       res.on("end", () => {
         try {
-          const data = JSON.parse(chunks);
+          const data = JSON.parse(chunks) as { status?: string };
           resolve(data?.status === "running");
         } catch {
           resolve(false);
@@ -299,7 +299,7 @@ async function handleRequest(req: JsonRpcRequest): Promise<void> {
         },
         serverInfo: {
           name: "render-api-mcp",
-          version: "0.1.15",
+          version: "0.1.16",
         },
       });
       break;
