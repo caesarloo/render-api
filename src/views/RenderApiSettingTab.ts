@@ -159,38 +159,91 @@ export class RenderApiSettingTab extends PluginSettingTab {
       text: "Mcp (model context protocol) allows AI tools like hermes agent and Claude desktop to interact with your vault programmatically.",
     });
 
-    const configDir = this.app.vault.configDir;
-    const mcpPath = `<${configDir}>/plugins/render-api/mcp-server.js`;
-    const hermesYaml = `mcp_servers:\n  render-api:\n    command: node\n    args:\n      - ${mcpPath}\n    enabled: true`;
+    // MCP Transport mode
+    new Setting(containerEl)
+      .setName("Mcp transport")
+      .setDesc("Stdio: standalone subprocess (default, backward compatible). Sse: embedded in HTTP server (no extra process, simpler config)")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("stdio", "Stdio (subprocess)")
+          .addOption("sse", "Sse/URL (embedded)")
+          .setValue(this.plugin.settings.mcpTransport)
+          .onChange(async (value: string) => {
+            this.plugin.settings.mcpTransport = value as "stdio" | "sse";
+            await this.plugin.saveSettings();
+            // Re-render the config section to show the right snippet
+            this.renderSettings(containerEl);
+          }),
+      );
 
-    const claudeJson = JSON.stringify(
-      {
-        mcpServers: {
-          "render-api": {
-            command: "node",
-            args: [mcpPath],
+    const isSse = this.plugin.settings.mcpTransport === "sse";
+
+    if (isSse) {
+      // ── SSE mode config ──
+      const port = this.plugin.settings.serverPort;
+      const sseUrl = `http://localhost:${port}/mcp`;
+      const hermesYamlSse = `mcp_servers:\n  render-api:\n    url: ${sseUrl}\n    enabled: true`;
+      const claudeJsonSse = JSON.stringify(
+        {
+          mcpServers: {
+            "render-api": {
+              url: sseUrl,
+            },
           },
         },
-      },
-      null,
-      2,
-    );
+        null,
+        2,
+      );
 
-    // Hermes agent config
-    new Setting(containerEl).setName("Configuration for hermes agent").setHeading();
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: "Add to ~/.hermes/config.yaml",
-    });
-    this.addCodeBlock(containerEl, hermesYaml, "language-yaml");
+      // Hermes agent config
+      new Setting(containerEl).setName("Configuration for hermes agent").setHeading();
+      containerEl.createEl("p", {
+        cls: "setting-item-description",
+        text: "Add to ~/.hermes/config.yaml",
+      });
+      this.addCodeBlock(containerEl, hermesYamlSse, "language-yaml");
 
-    // Claude desktop config
-    new Setting(containerEl).setName("Configuration for Claude desktop").setHeading();
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: "Add to claude_desktop_config.json",
-    });
-    this.addCodeBlock(containerEl, claudeJson, "language-json");
+      // Claude desktop config
+      new Setting(containerEl).setName("Configuration for Claude desktop").setHeading();
+      containerEl.createEl("p", {
+        cls: "setting-item-description",
+        text: "Add to claude_desktop_config.json",
+      });
+      this.addCodeBlock(containerEl, claudeJsonSse, "language-json");
+    } else {
+      // ── stdio mode config (default) ──
+      const configDir = this.app.vault.configDir;
+      const mcpPath = `<${configDir}>/plugins/render-api/mcp-server.js`;
+      const hermesYaml = `mcp_servers:\n  render-api:\n    command: node\n    args:\n      - ${mcpPath}\n    enabled: true`;
+      const claudeJson = JSON.stringify(
+        {
+          mcpServers: {
+            "render-api": {
+              command: "node",
+              args: [mcpPath],
+            },
+          },
+        },
+        null,
+        2,
+      );
+
+      // Hermes agent config
+      new Setting(containerEl).setName("Configuration for hermes agent").setHeading();
+      containerEl.createEl("p", {
+        cls: "setting-item-description",
+        text: "Add to ~/.hermes/config.yaml",
+      });
+      this.addCodeBlock(containerEl, hermesYaml, "language-yaml");
+
+      // Claude desktop config
+      new Setting(containerEl).setName("Configuration for Claude desktop").setHeading();
+      containerEl.createEl("p", {
+        cls: "setting-item-description",
+        text: "Add to claude_desktop_config.json",
+      });
+      this.addCodeBlock(containerEl, claudeJson, "language-json");
+    }
 
     // Available tools
     new Setting(containerEl).setName("Available tools").setHeading();

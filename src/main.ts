@@ -21,7 +21,10 @@ export default class RenderApiPlugin extends Plugin {
     console.log("[Render API] Plugin loaded, settings:", this.settings);
 
     // Write mcp-server.js to disk so MCP stdio works for marketplace users
-    await this.writeMcpServerFile();
+    // Only needed in stdio mode (SSE mode embeds MCP directly in apiService)
+    if (this.settings.mcpTransport === "stdio") {
+      await this.writeMcpServerFile();
+    }
 
     this.addCommand({
       id: "start-server",

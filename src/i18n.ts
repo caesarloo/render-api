@@ -15,6 +15,8 @@ const strings: Record<string, Record<Lang, string>> = {
   "setting.corsOrigin": { zh: "CORS 来源", en: "CORS Origin" },
   "setting.corsOrigin.desc": { zh: "留空则允许所有来源（*）", en: "Leave empty to allow all origins (*)" },
   "setting.serverStatus": { zh: "服务器状态", en: "Server Status" },
+  "setting.mcpTransport": { zh: "MCP 传输模式", en: "MCP Transport" },
+  "setting.mcpTransport.desc": { zh: "stdio：独立子进程（默认，向后兼容）；sse：内嵌到 HTTP 服务（无需额外进程，配置更简单）", en: "stdio: standalone subprocess (default, backward compatible). sse: embedded in HTTP server (no extra process, simpler config)" },
   "server.running": { zh: "运行中", en: "Running" },
   "server.stopped": { zh: "已停止", en: "Stopped" },
   "server.start": { zh: "启动服务", en: "Start Server" },

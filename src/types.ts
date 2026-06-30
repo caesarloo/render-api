@@ -1,6 +1,8 @@
 import type { Plugin } from "obsidian";
 import type { ApiServer } from "./services/apiService";
 
+export type McpTransport = "stdio" | "sse";
+
 export interface RenderApiSettings {
   serverPort: number;
   enableServerOnStart: boolean;
@@ -9,6 +11,7 @@ export interface RenderApiSettings {
   apiKey: string; // empty = no auth
   corsOrigin: string; // empty = allow all
   language: "zh" | "en";
+  mcpTransport: McpTransport; // "stdio" (default) or "sse"
 }
 
 export interface RenderResult {
@@ -52,4 +55,5 @@ export const DEFAULT_SETTINGS: RenderApiSettings = {
   apiKey: "",
   corsOrigin: "",
   language: "zh",
+  mcpTransport: "stdio",
 };
