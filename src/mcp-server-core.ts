@@ -21,6 +21,7 @@
 
 import * as http from "node:http";
 import * as readline from "node:readline";
+import * as fs from "node:fs";
 import {
   handleMcpRequest,
   TOOL_METAS,
@@ -143,8 +144,6 @@ function resolveWSLHosts(): string[] {
   }
   // Try to read default gateway from /proc/net/route (WSL-specific)
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = require("node:fs") as typeof import("node:fs");
     const route = fs.readFileSync("/proc/net/route", "utf-8");
     const lines = route.trim().split("\n");
     for (const line of lines.slice(1)) {
