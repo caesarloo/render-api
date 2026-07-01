@@ -201,7 +201,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
       .addDropdown((dropdown) =>
         dropdown
           .addOption("stdio", "Stdio (subprocess)")
-          .addOption("streamable-http", "URL (Streamable HTTP)")
+          .addOption("streamable-http", "URL (streamable HTTP)")
           .setValue(this.plugin.settings.mcpTransport === "sse" ? "streamable-http" : this.plugin.settings.mcpTransport)
           .onChange(async (value: string) => {
             this.plugin.settings.mcpTransport = value as McpTransport;
