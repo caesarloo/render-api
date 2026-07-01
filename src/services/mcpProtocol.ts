@@ -67,6 +67,7 @@ export const TOOL_METAS: ToolMeta[] = [
       type: "object",
       properties: {
         content: { type: "string", description: "Markdown content to render" },
+        sourcePath: { type: "string", description: "Optional vault-relative file path for resolving relative links/images in content (e.g. 'Daily/note.md')" },
         format: { type: "string", enum: ["html", "text", "json"], description: "Output format (default: html)" },
       },
       required: ["content"],
@@ -120,6 +121,7 @@ export function toolArgsToRenderRequest(
     case "render_markdown":
       return {
         content: String(args.content ?? ""),
+        sourcePath: args.sourcePath ? String(args.sourcePath) : undefined,
         format: (args.format as "html" | "text" | "json") ?? "html",
       };
     case "render_file":

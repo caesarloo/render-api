@@ -400,6 +400,7 @@ export class ApiServer {
       render_markdown: async (args_) => {
         const result = await renderService.render({
           content: String(args_.content ?? ""),
+          sourcePath: args_.sourcePath ? String(args_.sourcePath) : undefined,
           format: (args_.format as "html" | "text" | "json") ?? "html",
         });
         return result;

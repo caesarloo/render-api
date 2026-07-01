@@ -28,6 +28,8 @@ export interface RenderRequest {
   content?: string;
   /** Vault file path relative to vault root */
   filePath?: string;
+  /** Source path for resolving relative links/images in content (vault-relative) */
+  sourcePath?: string;
   /** Dataview DQL query (e.g. "TABLE ... FROM ...") */
   query?: string;
   /** DataviewJS code */
