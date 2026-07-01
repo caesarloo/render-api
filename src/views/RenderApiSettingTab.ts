@@ -209,7 +209,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
             const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
             const savedScroll = scrollContainer?.scrollTop ?? 0;
             this.renderSettings(containerEl);
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
               if (scrollContainer) scrollContainer.scrollTop = savedScroll;
             });
           }),
@@ -235,7 +235,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
             const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
             const savedScroll = scrollContainer?.scrollTop ?? 0;
             this.renderSettings(containerEl);
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
               if (scrollContainer) scrollContainer.scrollTop = savedScroll;
             });
           }),
@@ -256,7 +256,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
               const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
               const savedScroll = scrollContainer?.scrollTop ?? 0;
               this.renderSettings(containerEl);
-              requestAnimationFrame(() => {
+              window.requestAnimationFrame(() => {
                 if (scrollContainer) scrollContainer.scrollTop = savedScroll;
               });
             }),
@@ -276,7 +276,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
                 const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
                 const savedScroll = scrollContainer?.scrollTop ?? 0;
                 this.renderSettings(containerEl);
-                requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
                   if (scrollContainer) scrollContainer.scrollTop = savedScroll;
                 });
               }),
@@ -291,7 +291,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
                   const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
                   const savedScroll = scrollContainer?.scrollTop ?? 0;
                   this.renderSettings(containerEl);
-                  requestAnimationFrame(() => {
+                  window.requestAnimationFrame(() => {
                     if (scrollContainer) scrollContainer.scrollTop = savedScroll;
                   });
                 } else {
@@ -360,7 +360,7 @@ export class RenderApiSettingTab extends PluginSettingTab {
       if (this.selectedEnv === "wsl") {
         // Convert Windows path to WSL path (C:/... → /mnt/c/...)
         command = "/mnt/c/Program Files/nodejs/node.exe";
-        serverPath = fullConfigPath.replace(/^([A-Za-z]):\//, (_m, d) => `/mnt/${d.toLowerCase()}/`);
+        serverPath = fullConfigPath.replace(/^([A-Za-z]):\//, (_match: string, driveLetter: string) => `/mnt/${driveLetter.toLowerCase()}/`);
         serverPath = `${serverPath}/plugins/render-api/mcp-server.js`;
       } else {
         command = "node";

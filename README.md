@@ -9,6 +9,11 @@
 **Render API** is a desktop-only Obsidian plugin that exposes dataview, Tasks, and general markdown rendering results via a local REST API. It allows AI tools — such as Hermes Agent, Claude Code, or custom scripts — to programmatically access your vault's rendered content.
 
 |> ⚠️ **Permissions**: This plugin starts a local HTTP server (Node.js `http` module, bound to `0.0.0.0`), may invoke the dataview plugin's JavaScript API when enabled, and accesses the system clipboard for the MCP config "Copy" button in settings. It does not access external networks beyond what you configure. These permissions are required to expose rendering results via an API and cannot be replaced by the Obsidian vault API.
+>
+> **Detailed explanation of permissions flagged by the Obsidian community market review:**
+> - **System identity information** (`os.networkInterfaces`): Used for **WSL gateway IP auto-detection** in the plugin settings. When the "Running environment" is set to WSL, clicking "Detect" scans Windows network interfaces to find the WSL virtual adapter IP, so the MCP URL can use the correct gateway address. No data is sent anywhere — all detection is local.
+> - **Direct filesystem access** (Node.js `fs` module): Used only for **self-distributing the MCP stdio bridge script** (`mcp-server.js`). On first load, the plugin writes `mcp-server.js` to `.obsidian/plugins/render-api/` so community marketplace users can use stdio mode without manual installation. This is the only filesystem write outside the vault API.
+> - **Clipboard access** (`navigator.clipboard`): Used only for the **"Copy" button** in the MCP config section of the settings page. Users can one-click copy the generated Hermes/Claude config snippet. No clipboard monitoring or background access.
 
 **Current stable version**: `0.2.0`
 
@@ -225,6 +230,11 @@ mcp_servers:
 **Render API** 是一个 Obsidian **桌面端**插件，将 dataview、Tasks 等插件的渲染结果通过本地 REST API 暴露出来，让 AI 工具（如 Hermes Agent、Claude Code）或自定义脚本程序化地访问你的笔记库渲染内容。
 
 > ⚠️ **权限说明**：本插件启动一个本地 HTTP 服务（Node.js `http` 模块，绑定到 `0.0.0.0`），可能在你开启相关功能时调用 dataview 插件的 JavaScript API，并访问系统剪贴板用于设置页 MCP 配置的「复制」按钮。插件不会主动访问外部网络。这些权限是 API 服务所必需的，无法通过 Obsidian vault API 替代。
+>
+> **社区市场审核标记的权限详细说明：**
+> - **系统身份信息读取**（`os.networkInterfaces`）：用于插件设置中的 **WSL 网关 IP 自动检测**。当"运行环境"设为 WSL 时，点击"Detect"按钮会扫描 Windows 网络接口，找到 WSL 虚拟网卡 IP，以便 MCP URL 使用正确的网关地址。所有检测仅在本地完成，不会发送任何数据。
+> - **直接文件系统访问**（Node.js `fs` 模块）：仅用于 **MCP stdio 桥接脚本的自分发**（`mcp-server.js`）。插件首次加载时，将 `mcp-server.js` 写入 `.obsidian/plugins/render-api/`，使社区市场下载用户无需手动安装即可使用 stdio 模式。这是唯一在 vault API 之外的文件系统写入操作。
+> - **剪贴板访问**（`navigator.clipboard`）：仅用于设置页 MCP 配置区的 **「复制」按钮**，用户可一键复制生成的 Hermes/Claude 配置。不会监控或后台访问剪贴板。
 
 当前稳定版本：`0.1.16`
 
