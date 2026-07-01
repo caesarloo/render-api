@@ -15,7 +15,7 @@
 > - **Direct filesystem access** (Node.js `fs` module): Used only for **self-distributing the MCP stdio bridge script** (`mcp-server.js`). On first load, the plugin writes `mcp-server.js` to `.obsidian/plugins/render-api/` so community marketplace users can use stdio mode without manual installation. This is the only filesystem write outside the vault API.
 > - **Clipboard access** (`navigator.clipboard`): Used only for the **"Copy" button** in the MCP config section of the settings page. Users can one-click copy the generated Hermes/Claude config snippet. No clipboard monitoring or background access.
 
-**Current stable version**: `0.2.0`
+**Current stable version**: `0.2.2`
 
 **Latest release**: https://github.com/caesarloo/render-api/releases
 
