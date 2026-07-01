@@ -1,7 +1,7 @@
 import type { Plugin } from "obsidian";
 import type { ApiServer } from "./services/apiService";
 
-export type McpTransport = "stdio" | "sse";
+export type McpTransport = "stdio" | "sse" | "streamable-http";
 
 export interface RenderApiSettings {
   serverPort: number;

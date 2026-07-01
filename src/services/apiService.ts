@@ -141,6 +141,10 @@ export class ApiServer {
       if (path === "/mcp" && req.method === "GET") {
         return this.handleMcpSse(res);
       }
+      // MCP Streamable HTTP — Hermes sends POST directly to /mcp
+      if (path === "/mcp" && req.method === "POST") {
+        return await this.handleMcpStreamableHttp(req, res);
+      }
       if (path === "/mcp/message" && req.method === "POST") {
         return await this.handleMcpMessage(req, res);
       }
@@ -327,6 +331,41 @@ export class ApiServer {
 
     // Process the request
     handleMcpRequest(jsonRpcReq, { tools: renderTools }, sseWriter);
+  }
+
+  /**
+   * POST /mcp — Streamable HTTP transport.
+   * Processes JSON-RPC requests directly and returns responses inline.
+   * Used by Hermes Agent's Streamable HTTP MCP client.
+   */
+  private async handleMcpStreamableHttp(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> {
+    const body = await this.readBody(req);
+    let jsonRpcReq: JsonRpcRequest;
+    try {
+      jsonRpcReq = JSON.parse(body) as JsonRpcRequest;
+    } catch {
+      this.sendJson(res, 400, { success: false, error: "Invalid JSON-RPC body" });
+      return;
+    }
+
+    // Notifications (no id) get empty 202 — no response expected
+    if (jsonRpcReq.id === undefined) {
+      res.writeHead(202);
+      res.end();
+      return;
+    }
+
+    const tools = await this.buildSseToolHandlers();
+
+    const response = await new Promise<JsonRpcResponse>((resolve) => {
+      const writer: TransportWriter = (response: JsonRpcResponse) => resolve(response);
+      handleMcpRequest(jsonRpcReq, { tools }, writer);
+    });
+
+    this.sendJson(res, 200, response as unknown as Record<string, unknown>);
   }
 
   /** Write an SSE event to a client response stream. */

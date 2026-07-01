@@ -1,8 +1,13 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type { SettingDefinitionItem } from "obsidian";
 import type RenderApiPlugin from "../main";
+import type { McpTransport } from "../types";
+import * as os from "node:os";
 
 export class RenderApiSettingTab extends PluginSettingTab {
+  private selectedAgent: "hermes" | "claude" = "hermes";
+  private selectedEnv: "windows" | "wsl" = "windows";
+  private wslGatewayIp = "172.17.64.1";
   constructor(
     app: App,
     private readonly plugin: RenderApiPlugin,
@@ -43,6 +48,36 @@ export class RenderApiSettingTab extends PluginSettingTab {
         }
       })();
     });
+  }
+
+  /** Auto-detect the WSL gateway IP from Windows network interfaces. */
+  private detectWslGatewayIp(): string | null {
+    try {
+      const interfaces = os.networkInterfaces();
+      // Look for adapter named "WSL" (e.g. "vEthernet (WSL)")
+      for (const [name, addrs] of Object.entries(interfaces)) {
+        if (!addrs) continue;
+        if (name.toLowerCase().includes("wsl")) {
+          for (const addr of addrs) {
+            if (addr.family === "IPv4" && !addr.internal) {
+              return addr.address;
+            }
+          }
+        }
+      }
+      // Fallback: scan 172.x.x.x range for WSL-style gateway
+      for (const [, addrs] of Object.entries(interfaces)) {
+        if (!addrs) continue;
+        for (const addr of addrs) {
+          if (addr.family === "IPv4" && addr.address.startsWith("172.") && !addr.internal) {
+            return addr.address;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
   }
 
   /** Build the settings UI into the given container element. */
@@ -162,87 +197,213 @@ export class RenderApiSettingTab extends PluginSettingTab {
     // MCP Transport mode
     new Setting(containerEl)
       .setName("Mcp transport")
-      .setDesc("Stdio: standalone subprocess (default, backward compatible). Sse: embedded in HTTP server (no extra process, simpler config)")
+      .setDesc("Select how AI tools connect to the render API server")
       .addDropdown((dropdown) =>
         dropdown
           .addOption("stdio", "Stdio (subprocess)")
-          .addOption("sse", "Sse/URL (embedded)")
-          .setValue(this.plugin.settings.mcpTransport)
+          .addOption("streamable-http", "URL (Streamable HTTP)")
+          .setValue(this.plugin.settings.mcpTransport === "sse" ? "streamable-http" : this.plugin.settings.mcpTransport)
           .onChange(async (value: string) => {
-            this.plugin.settings.mcpTransport = value as "stdio" | "sse";
+            this.plugin.settings.mcpTransport = value as McpTransport;
             await this.plugin.saveSettings();
-            // Re-render the config section to show the right snippet
+            const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
+            const savedScroll = scrollContainer?.scrollTop ?? 0;
             this.renderSettings(containerEl);
+            requestAnimationFrame(() => {
+              if (scrollContainer) scrollContainer.scrollTop = savedScroll;
+            });
           }),
       );
 
-    const isSse = this.plugin.settings.mcpTransport === "sse";
+    const transport = this.plugin.settings.mcpTransport === "sse" ? "streamable-http" : this.plugin.settings.mcpTransport;
 
-    if (isSse) {
-      // ── SSE mode config ──
+    // ── MCP config container (for partial re-render) ──
+    const mcpConfigEl = containerEl.createEl("div", { cls: "render-api-mcp-config" });
+
+    // Agent selector (shared by both modes)
+    new Setting(mcpConfigEl)
+      .setName("Configuration for")
+      .setDesc("Select an AI tool to show its mcp configuration")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("hermes", "Hermes agent")
+          .addOption("claude", "Claude desktop")
+          .setValue(this.selectedAgent)
+          .onChange((value: string) => {
+            this.selectedAgent = value as "hermes" | "claude";
+            // Save and restore scroll position
+            const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
+            const savedScroll = scrollContainer?.scrollTop ?? 0;
+            this.renderSettings(containerEl);
+            requestAnimationFrame(() => {
+              if (scrollContainer) scrollContainer.scrollTop = savedScroll;
+            });
+          }),
+      );
+
+    // Environment selector (all modes)
+    {
+      new Setting(mcpConfigEl)
+        .setName("Running environment")
+        .setDesc("Where hermes/Claude runs: Windows native or wsl")
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("windows", "Windows")
+            .addOption("wsl", "WSL")
+            .setValue(this.selectedEnv)
+            .onChange((value: string) => {
+              this.selectedEnv = value as "windows" | "wsl";
+              const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
+              const savedScroll = scrollContainer?.scrollTop ?? 0;
+              this.renderSettings(containerEl);
+              requestAnimationFrame(() => {
+                if (scrollContainer) scrollContainer.scrollTop = savedScroll;
+              });
+            }),
+        );
+
+      // WSL gateway IP input (only in URL modes when WSL is selected)
+      if (this.selectedEnv === "wsl" && transport !== "stdio") {
+        new Setting(mcpConfigEl)
+          .setName("Wsl gateway IP")
+          .setDesc("Run `ip route | grep default` in WSL to find your gateway IP, or click Detect")
+          .addText((text) =>
+            text
+              .setPlaceholder("172.17.64.1")
+              .setValue(this.wslGatewayIp)
+              .onChange((value) => {
+                this.wslGatewayIp = value || "172.17.64.1";
+                const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
+                const savedScroll = scrollContainer?.scrollTop ?? 0;
+                this.renderSettings(containerEl);
+                requestAnimationFrame(() => {
+                  if (scrollContainer) scrollContainer.scrollTop = savedScroll;
+                });
+              }),
+          )
+          .addButton((btn) =>
+            btn.setButtonText("Detect")
+              .setCta()
+              .onClick(() => {
+                const ip = this.detectWslGatewayIp();
+                if (ip) {
+                  this.wslGatewayIp = ip;
+                  const scrollContainer = containerEl.closest(".vertical-tab-content") || containerEl.parentElement;
+                  const savedScroll = scrollContainer?.scrollTop ?? 0;
+                  this.renderSettings(containerEl);
+                  requestAnimationFrame(() => {
+                    if (scrollContainer) scrollContainer.scrollTop = savedScroll;
+                  });
+                } else {
+                  new Notice("Could not detect WSL gateway IP. Run `ip route | grep default` in WSL.");
+                }
+              }),
+          );
+      }
+    }
+
+    if (transport === "streamable-http") {
+      // ── URL mode config (Streamable HTTP) ──
       const port = this.plugin.settings.serverPort;
-      const sseUrl = `http://localhost:${port}/mcp`;
-      const hermesYamlSse = `mcp_servers:\n  render-api:\n    url: ${sseUrl}\n    enabled: true`;
-      const claudeJsonSse = JSON.stringify(
-        {
-          mcpServers: {
-            "render-api": {
-              url: sseUrl,
+      const host = this.selectedEnv === "wsl" ? this.wslGatewayIp : "localhost";
+      const url = `http://${host}:${port}/mcp`;
+
+      if (this.selectedAgent === "hermes") {
+        const yaml = [
+          "mcp_servers:",
+          "  render-api:",
+          `    url: ${url}`,
+          "    enabled: true",
+        ].join("\n");
+        new Setting(mcpConfigEl).setName("Configuration for hermes agent").setHeading();
+        mcpConfigEl.createEl("p", {
+          cls: "setting-item-description",
+          text: this.selectedEnv === "wsl"
+            ? `Streamable HTTP (WSL: use --noproxy * to bypass proxy) — Add to ~/.hermes/config.yaml`
+            : `Streamable HTTP — Add to ~/.hermes/config.yaml`,
+        });
+        this.addCodeBlock(mcpConfigEl, yaml, "language-yaml");
+      } else {
+        const claudeJson = JSON.stringify(
+          {
+            mcpServers: {
+              "render-api": {
+                url,
+              },
             },
           },
-        },
-        null,
-        2,
-      );
-
-      // Hermes agent config
-      new Setting(containerEl).setName("Configuration for hermes agent").setHeading();
-      containerEl.createEl("p", {
-        cls: "setting-item-description",
-        text: "Add to ~/.hermes/config.yaml",
-      });
-      this.addCodeBlock(containerEl, hermesYamlSse, "language-yaml");
-
-      // Claude desktop config
-      new Setting(containerEl).setName("Configuration for Claude desktop").setHeading();
-      containerEl.createEl("p", {
-        cls: "setting-item-description",
-        text: "Add to claude_desktop_config.json",
-      });
-      this.addCodeBlock(containerEl, claudeJsonSse, "language-json");
-    } else {
+          null,
+          2,
+        );
+        new Setting(mcpConfigEl).setName("Configuration for Claude desktop").setHeading();
+        mcpConfigEl.createEl("p", {
+          cls: "setting-item-description",
+          text: this.selectedEnv === "wsl"
+            ? `Streamable HTTP (WSL: set no_proxy env or use --noproxy) — Add to claude_desktop_config.json`
+            : `Streamable HTTP — Add to claude_desktop_config.json`,
+        });
+        this.addCodeBlock(mcpConfigEl, claudeJson, "language-json");
+      }
+    } else if (transport === "stdio") {
       // ── stdio mode config (default) ──
+      const adapter = this.app.vault.adapter as { getBasePath?: () => string };
+      const vaultBasePath = adapter.getBasePath?.() ?? "";
       const configDir = this.app.vault.configDir;
-      const mcpPath = `<${configDir}>/plugins/render-api/mcp-server.js`;
-      const hermesYaml = `mcp_servers:\n  render-api:\n    command: node\n    args:\n      - ${mcpPath}\n    enabled: true`;
-      const claudeJson = JSON.stringify(
-        {
-          mcpServers: {
-            "render-api": {
-              command: "node",
-              args: [mcpPath],
+      const fullConfigPath = (vaultBasePath
+        ? `${vaultBasePath}/${configDir}`
+        : configDir).replace(/\\/g, "/");
+      const port = this.plugin.settings.serverPort;
+
+      // Build paths based on environment
+      let command: string;
+      let serverPath: string;
+      if (this.selectedEnv === "wsl") {
+        // Convert Windows path to WSL path (C:/... → /mnt/c/...)
+        command = "/mnt/c/Program Files/nodejs/node.exe";
+        serverPath = fullConfigPath.replace(/^([A-Za-z]):\//, (_m, d) => `/mnt/${d.toLowerCase()}/`);
+        serverPath = `${serverPath}/plugins/render-api/mcp-server.js`;
+      } else {
+        command = "node";
+        serverPath = `${fullConfigPath}/plugins/render-api/mcp-server.js`;
+      }
+
+      if (this.selectedAgent === "hermes") {
+        const hermesYaml = [
+          "mcp_servers:",
+          "  render-api:",
+          `    command: ${command}`,
+          `    args:`,
+          `      - ${serverPath}`,
+          `      - --port`,
+          `      - ${port}`,
+          "    enabled: true",
+        ].join("\n");
+        new Setting(mcpConfigEl).setName("Configuration for hermes agent").setHeading();
+        mcpConfigEl.createEl("p", {
+          cls: "setting-item-description",
+          text: "Add to ~/.hermes/config.yaml",
+        });
+        this.addCodeBlock(mcpConfigEl, hermesYaml, "language-yaml");
+      } else {
+        const claudeJson = JSON.stringify(
+          {
+            mcpServers: {
+              "render-api": {
+                command,
+                args: [serverPath, "--port", String(port)],
+              },
             },
           },
-        },
-        null,
-        2,
-      );
-
-      // Hermes agent config
-      new Setting(containerEl).setName("Configuration for hermes agent").setHeading();
-      containerEl.createEl("p", {
-        cls: "setting-item-description",
-        text: "Add to ~/.hermes/config.yaml",
-      });
-      this.addCodeBlock(containerEl, hermesYaml, "language-yaml");
-
-      // Claude desktop config
-      new Setting(containerEl).setName("Configuration for Claude desktop").setHeading();
-      containerEl.createEl("p", {
-        cls: "setting-item-description",
-        text: "Add to claude_desktop_config.json",
-      });
-      this.addCodeBlock(containerEl, claudeJson, "language-json");
+          null,
+          2,
+        );
+        new Setting(mcpConfigEl).setName("Configuration for Claude desktop").setHeading();
+        mcpConfigEl.createEl("p", {
+          cls: "setting-item-description",
+          text: "Add to claude_desktop_config.json",
+        });
+        this.addCodeBlock(mcpConfigEl, claudeJson, "language-json");
+      }
     }
 
     // Available tools
